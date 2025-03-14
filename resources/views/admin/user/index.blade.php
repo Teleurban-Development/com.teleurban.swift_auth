@@ -21,7 +21,6 @@
                 <td>{{ $user->name }}</td>
                 <td>{{ $user->email }}</td>
                 <td>
-                    <a href="{{ route('admin.user.show', $user->id) }}" class="btn btn-info btn-sm">Ver</a>
                     <a href="{{ route('admin.user.update', $user->id) }}" class="btn btn-warning btn-sm">Editar</a>
                     <form action="{{ route('admin.user.destroy', $user->id) }}" method="POST" class="d-inline">
                         @csrf
