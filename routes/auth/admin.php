@@ -7,7 +7,9 @@ Route::prefix('admin')->as('admin.')->group(function () {
     Route::get('login', [AdminUserController::class, 'showLoginForm'])->name('login');
     Route::post('login', [AdminUserController::class, 'login'])->name('login.submit');
 
-    Route::post('logout', [AdminUserController::class, 'logout'])->name('logout');
+    Route::get('register', [AdminUserController::class, 'showRegisterForm'])->name('register');
+
+    Route::match(['get', 'post'], 'logout', [AdminUserController::class, 'logout'])->name('logout');
 
     Route::prefix('password')->as('password.')->group(
         function () {
