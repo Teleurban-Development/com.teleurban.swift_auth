@@ -3,7 +3,7 @@
 @section('content')
     <h2 class="text-center">Restablecer contraseña</h2>
 
-    <form action="{{ route('admin.password.update') }}" method="POST">
+    <form action="{{ route('swift-auth.password.update') }}" method="POST">
         @csrf
         <input type="hidden" name="token" value="{{ $token }}">
 

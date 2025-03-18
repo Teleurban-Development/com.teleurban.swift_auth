@@ -20,7 +20,7 @@
                         <a class="nav-link" href="#">{{ Auth::user()->name }}</a>
                     </li>
                     <li class="nav-item">
-                        <form action="{{ route('admin.logout') }}" method="POST">
+                        <form action="{{ route('swift-auth.logout') }}" method="POST">
                             @csrf
                             <button type="submit" class="btn btn-link nav-link">Cerrar sesión</button>
                         </form>
@@ -31,6 +31,10 @@
     </nav>
 
     <div class="container mt-4">
+        @if (session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        @endif
+        
         @yield('content')
     </div>
 </body>

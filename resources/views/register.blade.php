@@ -3,11 +3,7 @@
 @section('content')
     <h2 class="text-center">Registro de usuario</h2>
 
-    @if (session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
-
-    <form method="POST" action="{{ route('admin.user.store') }}">
+    <form method="POST" action="{{ route('swift-auth.store') }}">
         @csrf
 
         <div class="mb-3">
@@ -42,7 +38,7 @@
         <button type="submit" class="btn btn-primary w-100">Registrarse</button>
 
         <div class="text-center mt-3">
-            <a href="{{ route('admin.login') }}" class="text-decoration-none">¿Ya tienes cuenta? Iniciar sesión</a>
+            <a href="{{ route('swift-auth.login') }}" class="text-decoration-none">¿Ya tienes cuenta? Iniciar sesión</a>
         </div>
     </form>
 @endsection

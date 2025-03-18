@@ -7,7 +7,7 @@
         <div class="alert alert-success">{{ session('status') }}</div>
     @endif
 
-    <form action="{{ route('admin.password.email') }}" method="POST">
+    <form action="{{ route('swift-auth.password.email') }}" method="POST">
         @csrf
         <div class="mb-3">
             <label for="email" class="form-label">Correo electrónico</label>

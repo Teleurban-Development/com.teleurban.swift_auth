@@ -3,7 +3,6 @@
 namespace Teleurban\SwiftAuth\Providers;
 
 use App\Providers\AppServiceProvider;
-use Illuminate\Support\ServiceProvider;
 use Teleurban\SwiftAuth\Console\Commands\ExampleCommand;
 
 final class SwiftAuthServiceProvider extends AppServiceProvider

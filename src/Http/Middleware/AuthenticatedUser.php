@@ -17,7 +17,7 @@ class AuthenticateUsers
     public function handle(Request $request, Closure $next): Response
     {
         if (!Auth::check()) {
-            return redirect()->route('login')->with('error', 'You must be logged in.');
+            return redirect()->route('swift-auth.login')->with('error', 'You must be logged in.');
         }
 
         return $next($request);

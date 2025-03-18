@@ -3,11 +3,12 @@
 use Teleurban\SwiftAuth\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('admin')->as('admin.')->group(function () {
+Route::prefix('swift-auth')->as('swift-auth.')->group(function () {
     Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('login', [AuthController::class, 'login'])->name('login.submit');
 
     Route::get('register', [AuthController::class, 'showRegisterForm'])->name('register');
+    Route::post('register', [AuthController::class, 'store'])->name('store');
 
     Route::match(['get', 'post'], 'logout', [AuthController::class, 'logout'])->name('logout');
 
