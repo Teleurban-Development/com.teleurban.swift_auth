@@ -52,7 +52,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Teleurban\\SwiftAuth\\SwiftAuthServiceProvider"
+                "Teleurban\\SwiftAuth\\Providers\\SwiftAuthServiceProvider"
             ]
         }
     },
