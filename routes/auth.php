@@ -1,6 +1,6 @@
 <?php
 
-use Teleurban\SwiftAuth\Http\Controllers\AuthController;
+use Teleurban\SwiftAuth\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('swift-auth')->as('swift-auth.')->group(function () {

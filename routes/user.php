@@ -1,7 +1,7 @@
 <?php
 
-use Teleurban\SwiftAuth\Http\Middleware\AuthenticateUsers;
-use Teleurban\SwiftAuth\Http\Controllers\AuthController;
+use Teleurban\SwiftAuth\Middleware\AuthenticateUsers;
+use Teleurban\SwiftAuth\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(AuthenticateUsers::class)->prefix('users')->as('user.')->group(

@@ -23,3 +23,7 @@ yarn-error.log
 /.zed
 .editorconfig
 ruleset.xml
+storage/framework/views/*.php
+database/*.sqlite
+database/*.sqlite-journal
+bootstrap/cache/*.php

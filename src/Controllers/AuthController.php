@@ -1,14 +1,14 @@
 <?php
 
-namespace Teleurban\SwiftAuth\Http\Controllers;
+namespace Teleurban\SwiftAuth\Controllers;
 
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Teleurban\SwiftAuth\Models\User;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
-use App\Models\User;
 
 class AuthController extends Controller
 {
