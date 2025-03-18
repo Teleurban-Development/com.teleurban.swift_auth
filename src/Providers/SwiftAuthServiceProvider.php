@@ -4,6 +4,7 @@ namespace Teleurban\SwiftAuth\Providers;
 
 use Teleurban\SwiftAuth\Console\Commands\ExampleCommand;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Routing\Router;
 
 final class SwiftAuthServiceProvider extends ServiceProvider
 {
@@ -12,7 +13,7 @@ final class SwiftAuthServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__ . '/../config/swift-auth.php', 'swift-auth');
     }
 
-    public function boot(): void
+    public function boot(Router $router): void
     {
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
 

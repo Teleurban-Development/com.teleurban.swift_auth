@@ -14,10 +14,14 @@ class AuthenticateUsers
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string $role = ''): Response
     {
         if (!Auth::check()) {
             return redirect()->route('swift-auth.login')->with('error', 'You must be logged in.');
+        }
+
+        if (!is_empty($role) && !Auth::user()->hasRole($role)) {
+            return redirect()->route('swift-auth.user.index')->with('error', 'Unauthorized access.');
         }
 
         return $next($request);

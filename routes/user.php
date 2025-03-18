@@ -11,8 +11,11 @@ Route::middleware(AuthenticateUsers::class)->prefix('users')->as('user.')->group
         Route::prefix('{id}')->group(
             function () {
                 Route::get('', [AuthController::class, 'show'])->name('show');
-                Route::put('', [AuthController::class, 'update'])->name('update');
-                Route::delete('', [AuthController::class, 'destroy'])->name('destroy');
+
+                Route::middleware(AuthenticateUsers::class . ':root')->group(function () {
+                    Route::put('', [AuthController::class, 'update'])->name('update');
+                    Route::delete('', [AuthController::class, 'destroy'])->name('destroy');
+                });
             }
         );
     }
