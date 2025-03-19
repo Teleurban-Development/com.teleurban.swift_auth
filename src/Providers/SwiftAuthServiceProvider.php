@@ -39,6 +39,13 @@ final class SwiftAuthServiceProvider extends ServiceProvider
             ]
         );
 
+        $this->publishes(
+            [
+                __DIR__ . '/../../resources/js/Pages' => resource_path('js/Pages/vendor/swift-auth'),
+            ],
+            ['swift-auth:react']
+        );
+
         if ($this->app->runningInConsole()) {
             $this->commands(
                 ExampleCommand::class
