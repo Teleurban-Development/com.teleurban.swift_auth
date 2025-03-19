@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Validator;
 use Teleurban\SwiftAuth\Models\Role;
 use Teleurban\SwiftAuth\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+
 
 class RoleController extends Controller
 {

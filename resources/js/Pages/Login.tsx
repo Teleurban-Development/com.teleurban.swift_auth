@@ -62,7 +62,7 @@ const LoginForm = () => {
                         href={route("swift-auth.password.request")}
                         className="text-sm text-blue-500"
                     >
-                        ¿Olvidaste tu contraseña?
+                        ¿Olvidaste tu csadasdasdsaontraseña?
                     </Link>
                     <button
                         type="submit"
