@@ -12,11 +12,13 @@ Route::middleware(AuthenticateUsers::class)->prefix('users')->as('user.')->group
             function () {
                 Route::get('', [AuthController::class, 'show'])->name('show');
 
-                Route::middleware(AuthenticateUsers::class . ':root')->group(function () {
+                Route::middleware(AuthenticateUsers::class . ':root')->group(function () { // TODO: ([AuthenticateUsers::class . ':root'])
                     Route::put('', [AuthController::class, 'update'])->name('update');
                     Route::delete('', [AuthController::class, 'destroy'])->name('destroy');
                 });
             }
         );
+
+        require __DIR__ . '/roles.php';
     }
 );
