@@ -1,6 +1,6 @@
 import { useForm } from "@inertiajs/react";
 import { FormEvent, ReactNode } from "react";
-import Guest from "../layouts/Guest";
+import Guest from "../../Layouts/Guest";
 
 const Reset = ({ token, email }: { token: string; email: string }) => {
     const { data, setData, post, processing, errors } = useForm({

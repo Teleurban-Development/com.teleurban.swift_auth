@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import Authenticated from "../../layouts/Authenticated";
+import Authenticated from "../../Layouts/Authenticated";
 
 interface User {
     id: number;

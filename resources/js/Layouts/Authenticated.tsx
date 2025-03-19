@@ -1,4 +1,4 @@
-import { Navbar } from "@components/navbar/Navbar";
+import { Navbar } from "@Components/Navbar/Navbar";
 
 export default function Authenticated({
     user,

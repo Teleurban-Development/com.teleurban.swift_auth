@@ -1,6 +1,5 @@
 <?php
 
-use Teleurban\SwiftAuth\Middleware\AuthenticateUsers;
 use Teleurban\SwiftAuth\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,7 +9,7 @@ Route::prefix('roles')->as('role.')->group(function () {
     Route::get('assign', [RoleController::class, 'assignUserForm'])->name('assignForm');
     Route::get('{id}', [RoleController::class, 'show'])->name('show');
 
-    Route::middleware(AuthenticateUsers::class . ':root')->group(function () { // TODO: ([AuthenticateUsers::class . ':root'])
+    Route::middleware('SwiftAuthMiddleware' . ':root')->group(function () { // TODO: ([AuthenticateUser::class . ':root'])
         Route::post('create', [RoleController::class, 'store'])->name('store');
         Route::post('assign', [RoleController::class, 'assignUser'])->name('assign');
 

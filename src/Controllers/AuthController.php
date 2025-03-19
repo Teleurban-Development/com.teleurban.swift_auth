@@ -9,27 +9,71 @@ use Illuminate\Support\Facades\Hash;
 use Teleurban\SwiftAuth\Models\User;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Illuminate\Support\Facades\Config;
 
 class AuthController extends Controller
 {
+    protected function render($bladeView, $inertiaComponent, $data = [])
+    {
+        return Config::get('swift-auth.use_inertia')
+            ? Inertia::render($inertiaComponent, $data)
+            : view($bladeView, $data);
+    }
+
     public function showLoginForm()
     {
-        return view('swift-auth::login');
+        return $this->render('swift-auth::login', 'Login');
     }
 
     public function showRegisterForm()
     {
-        return view('swift-auth::register');
+        return $this->render('swift-auth::register', 'Register');
     }
 
     public function showResetForm()
     {
-        return view('swift-auth::password.email');
+        return $this->render('swift-auth::password.email', 'ForgotPassword');
     }
 
     public function showNewPasswordForm()
     {
-        return view('swift-auth::password.reset');
+        return $this->render('swift-auth::password.reset', 'ResetPassword');
+    }
+
+    public function index()
+    {
+        $users = User::all();
+        return $this->render('swift-auth::user.index', 'User/Index', ['users' => $users]);
+    }
+
+    public function show($id)
+    {
+        $user = User::findOrFail($id);
+        return $this->render('swift-auth::user.show', 'User/Show', ['user' => $user]);
+    }
+
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        Auth::login($user);
+
+        return redirect()->route('swift-auth.user.index')->with('success', 'Registration successful.');
     }
 
     public function login(Request $request)
@@ -40,9 +84,9 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
+            // $request->session()->regenerate();
 
-            return redirect()->route('swift-auth::user.index')->with('success', 'Login successful.');
+            return redirect()->route('swift-auth.user.index')->with('success', 'Login successful.');
         }
 
         return back()->with('error', 'Invalid credentials.');
@@ -52,8 +96,8 @@ class AuthController extends Controller
     {
         Auth::logout();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // $request->session()->invalidate();
+        // $request->session()->regenerateToken();
 
         return redirect()->route('swift-auth::login')->with('success', 'Logged out successfully.');
     }
@@ -91,43 +135,6 @@ class AuthController extends Controller
             : back()->withErrors(['email' => __($status)]);
     }
 
-    public function index()
-    {
-        $users = User::all();
-
-        return view('swift-auth::user.index')->with('users', $users);
-    }
-
-    public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->route('swift-auth.register')->withErrors($validator)->withInput();
-        }
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        Auth::login($user);
-
-        return redirect()->route('swift-auth.user.index')->with('success', 'Registration successful.');
-    }
-
-    public function show($id)
-    {
-        $user = User::findOrFail($id);
-
-        return view('swift-auth::user.show')->with('user', $user);
-    }
-
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
@@ -148,18 +155,18 @@ class AuthController extends Controller
             'password' => $request->password ? Hash::make($request->password) : $user->password,
         ]);
 
-        return view('swift-auth::user.index')->with('success', 'User updated successfully.');
+        return redirect()->route('swift-auth.user.index')->with('success', 'User updated successfully.');
     }
 
     public function destroy($id)
     {
-        if (Auth::id() === $id) {
+        if (Auth::id() === (int) $id) {
             return back()->with('error', 'You cannot delete your own account.');
         }
 
         $user = User::findOrFail($id);
         $user->delete();
 
-        return view('swift-auth::user.index')->with('success', 'User successfully deleted.');
+        return redirect()->route('swift-auth.user.index')->with('success', 'User successfully deleted.');
     }
 }

@@ -1,6 +1,6 @@
 import { Link, useForm } from "@inertiajs/react";
 import { FormEvent, ReactNode } from "react";
-import Guest from "../layouts/Guest";
+import Guest from "../../Layouts/Guest";
 
 const Email = () => {
     const { data, setData, post, processing, errors } = useForm({

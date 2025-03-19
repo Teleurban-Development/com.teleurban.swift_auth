@@ -1,6 +1,6 @@
 import { Link, useForm } from "@inertiajs/react";
 import { FormEvent, ReactNode } from "react";
-import Guest from "../layouts/Guest";
+import Guest from "../Layouts/Guest";
 
 const LoginForm = () => {
     const { data, setData, post, processing, errors } = useForm({
@@ -62,7 +62,7 @@ const LoginForm = () => {
                         href={route("swift-auth.password.request")}
                         className="text-sm text-blue-500"
                     >
-                        ¿Olvidaste tu csadasdasdsaontraseña?
+                        ¿Olvidaste tu contraseña?
                     </Link>
                     <button
                         type="submit"

@@ -1,6 +1,6 @@
 import { Link, useForm } from "@inertiajs/react";
 import { FormEvent, ReactNode } from "react";
-import Guest from "../layouts/Guest";
+import Guest from "../Layouts/Guest";
 
 const RegisterForm = () => {
     const { data, setData, post, processing, errors } = useForm({
@@ -12,7 +12,12 @@ const RegisterForm = () => {
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        post(route("swift-auth.store"));
+        post(route("swift-auth.store"),  {
+            onError: (error) => {
+               console.log(error);
+               
+            },
+        });
     };
 
     return (

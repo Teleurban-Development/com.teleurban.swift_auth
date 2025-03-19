@@ -15,13 +15,15 @@ final class SwiftAuthServiceProvider extends ServiceProvider
 
     public function boot(Router $router): void
     {
+        $router->aliasMiddleware('SwiftAuthMiddleware', \Teleurban\SwiftAuth\Middleware\AuthenticateUser::class);
+
         $this->loadRoutesFrom(__DIR__ . '/../../routes/web.php');
 
         $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'swift-auth');
 
         $this->publishes(
             [
-                __DIR__ . '/../../resources/views' => resource_path('views/vendor/swift-auth'),
+                __DIR__ . '/../../resources/views' => resource_path('views'),
             ],
             [
                 'swift-auth:views'
@@ -41,7 +43,7 @@ final class SwiftAuthServiceProvider extends ServiceProvider
 
         $this->publishes(
             [
-                __DIR__ . '/../../resources/js/Pages' => resource_path('js/Pages/vendor/swift-auth'),
+                __DIR__ . '/../../resources/js' => resource_path('js'),
             ],
             ['swift-auth:react']
         );
@@ -51,5 +53,6 @@ final class SwiftAuthServiceProvider extends ServiceProvider
                 ExampleCommand::class
             );
         }
+        
     }
 }
