@@ -1,5 +1,6 @@
 <?php
 
 return [
-    'use_inertia' => env('SWIFT_AUTH_USE_INERTIA', false),
+    'frontend' => env('SWIFT_AUTH_FRONTEND', 'typescript'),
+    
 ];

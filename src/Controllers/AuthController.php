@@ -16,9 +16,9 @@ class AuthController extends Controller
 {
     protected function render($bladeView, $inertiaComponent, $data = [])
     {
-        return Config::get('swift-auth.use_inertia')
-            ? Inertia::render($inertiaComponent, $data)
-            : view($bladeView, $data);
+        return Config::get('swift-auth.frontend') === 'blade'
+            ? view($bladeView, $data) 
+            : Inertia::render($inertiaComponent, $data); 
     }
 
     public function showLoginForm()

@@ -5,6 +5,7 @@ namespace Teleurban\SwiftAuth\Providers;
 use Teleurban\SwiftAuth\Console\Commands\ExampleCommand;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Routing\Router;
+use Teleurban\SwiftAuth\Console\Commands\InstallSwiftAuth;
 
 final class SwiftAuthServiceProvider extends ServiceProvider
 {
@@ -43,15 +44,23 @@ final class SwiftAuthServiceProvider extends ServiceProvider
 
         $this->publishes(
             [
+                __DIR__ . '/../../resources/ts' => resource_path('js'),
+            ],
+            ['swift-auth:ts-react']
+        );
+
+        $this->publishes(
+            [
                 __DIR__ . '/../../resources/js' => resource_path('js'),
             ],
-            ['swift-auth:react']
+            ['swift-auth:js-react']
         );
 
         if ($this->app->runningInConsole()) {
-            $this->commands(
-                ExampleCommand::class
-            );
+            $this->commands([
+                ExampleCommand::class,
+                InstallSwiftAuth::class,
+            ]);
         }
         
     }
