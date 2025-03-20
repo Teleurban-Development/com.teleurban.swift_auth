@@ -13,7 +13,7 @@ export function Navbar({ user }) {
                         <Link href="/" className="hover:text-gray-300">
                             Inicio
                         </Link>
-                        <Link href="/users" className="hover:text-gray-300">
+                        <Link href={route('swift-auth.user.index')} className="hover:text-gray-300">
                             Usuarios
                         </Link>
                         <Link href="/roles" className="hover:text-gray-300">
@@ -21,12 +21,11 @@ export function Navbar({ user }) {
                         </Link>
                     </div>
 
-
                     <div className="hidden sm:flex space-x-4">
                         {user ? (
                             <>
                                 <span className="px-4 py-2">{user.name}</span>
-                                <form method="GET" action="/logout">
+                                <form method="GET" action={route('swift-auth.logout')}>
                                     <button
                                         type="submit"
                                         className="bg-red-500 px-4 py-2 rounded hover:bg-red-600"
