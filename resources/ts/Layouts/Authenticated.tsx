@@ -1,11 +1,11 @@
 import { Navbar } from "@/Components/Navbar/Navbar";
+
 export default function Authenticated({
     auth,
     children,
 }: {
     auth?: {
-        user:
-        { name: string }
+        user: { name: string };
     };
     children: React.ReactNode;
 }) {

@@ -1,6 +1,6 @@
 import { Link } from "@inertiajs/react";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+// import { Menu, X } from "lucide-react";
 
 export function Navbar({ user }: { user?: { name: string } }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -22,11 +22,11 @@ export function Navbar({ user }: { user?: { name: string } }) {
                     </div>
 
                     {/* Botón menú hamburguesa (móvil) */}
-                    <div className="sm:hidden">
+                    {/* <div className="sm:hidden">
                         <button onClick={() => setIsOpen(!isOpen)}>
                             {isOpen ? <X size={24} /> : <Menu size={24} />}
                         </button>
-                    </div>
+                    </div> */}
 
                     <div className="hidden sm:flex space-x-4">
                         {user ? (
