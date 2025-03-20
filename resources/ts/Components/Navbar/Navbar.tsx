@@ -32,7 +32,7 @@ export function Navbar({ user }: { user?: { name: string } }) {
                         {user ? (
                             <>
                                 <span className="px-4 py-2">{user.name}</span>
-                                <form method="GET" action="/logout">
+                                <form method="GET" action={route('swift-auth.logout')}>
                                     <button
                                         type="submit"
                                         className="bg-red-500 px-4 py-2 rounded hover:bg-red-600"
