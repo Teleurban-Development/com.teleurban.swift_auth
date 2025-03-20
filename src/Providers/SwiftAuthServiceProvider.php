@@ -56,6 +56,13 @@ final class SwiftAuthServiceProvider extends ServiceProvider
             ['swift-auth:js-react']
         );
 
+        $this->publishes(
+            [
+                __DIR__ . '/../../resources/icons' => public_path('icons'),
+            ],
+            ['swift-auth:icons']
+        );
+
         if ($this->app->runningInConsole()) {
             $this->commands([
                 ExampleCommand::class,

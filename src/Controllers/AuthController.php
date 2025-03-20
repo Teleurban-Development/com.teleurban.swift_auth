@@ -41,6 +41,16 @@ class AuthController extends Controller
         return $this->render('swift-auth::password.reset', 'ResetPassword');
     }
 
+    public function showNewUserForm()
+    {
+        return $this->render('swift-auth::user.create', 'User/Create');
+    }
+    public function showEditUserForm($id)
+    {
+        $user = User::findOrFail($id);
+        return $this->render('swift-auth::user.edit', 'User/Edit', ['user' => $user]);
+    }
+
     public function index()
     {
         $users = User::all();
@@ -71,7 +81,9 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        Auth::login($user);
+        if($request->startSession){
+            Auth::login($user);
+        }
 
         return redirect()->route('swift-auth.user.index')->with('success', 'Registration successful.');
     }

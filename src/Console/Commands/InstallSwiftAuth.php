@@ -34,9 +34,15 @@ class InstallSwiftAuth extends Command
             $this->installJavaScript();
         }
 
-        $this->call('vendor:publish', ['--provider' => 'Teleurban\SwiftAuth\Providers\SwiftAuthServiceProvider', '--tag' => 'swift-auth:migrations']);
+        $this->info('Importando migraciones...');
 
+        $this->call('vendor:publish', ['--provider' => 'Teleurban\SwiftAuth\Providers\SwiftAuthServiceProvider', '--tag' => 'swift-auth:migrations']);
         $this->call('migrate');
+
+
+        $this->info('Importando iconos...');
+        $this->call('vendor:publish', ['--provider' => 'Teleurban\SwiftAuth\Providers\SwiftAuthServiceProvider', '--tag' => 'swift-auth:icons']);
+        
 
         $this->info('Instalación completada.');
     }
