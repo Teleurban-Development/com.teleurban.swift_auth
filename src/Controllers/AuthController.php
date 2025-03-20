@@ -84,8 +84,8 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials)) {
-            // $request->session()->regenerate();
-
+            $request->session()->regenerate();
+            
             return redirect()->route('swift-auth.user.index')->with('success', 'Login successful.');
         }
 
@@ -96,10 +96,10 @@ class AuthController extends Controller
     {
         Auth::logout();
 
-        // $request->session()->invalidate();
-        // $request->session()->regenerateToken();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-        return redirect()->route('swift-auth::login')->with('success', 'Logged out successfully.');
+        return redirect()->route('swift-auth.login')->with('success', 'Logged out successfully.');
     }
 
     public function sendResetLink(Request $request) // TODO: send link

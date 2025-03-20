@@ -16,7 +16,7 @@ final class SwiftAuthServiceProvider extends ServiceProvider
 
     public function boot(Router $router): void
     {
-        $router->aliasMiddleware('SwiftAuthMiddleware', \Teleurban\SwiftAuth\Middleware\AuthenticateUser::class);
+        $router->aliasMiddleware('SwiftAuthMiddleware', \Teleurban\SwiftAuth\Middleware\AuthenticatedUser::class);
 
         $this->loadRoutesFrom(__DIR__ . '/../../routes/web.php');
 

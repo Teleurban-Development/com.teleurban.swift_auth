@@ -1,15 +1,17 @@
-import { Navbar } from "@Components/Navbar/Navbar";
-
+import { Navbar } from "@/Components/Navbar/Navbar";
 export default function Authenticated({
-    user,
+    auth,
     children,
 }: {
-    user?: { name: string };
+    auth?: {
+        user:
+        { name: string }
+    };
     children: React.ReactNode;
 }) {
     return (
         <div>
-            <Navbar user={user} />
+            <Navbar user={auth?.user} />
             <main className="max-w-3xl mx-auto mt-6">{children}</main>
         </div>
     );
