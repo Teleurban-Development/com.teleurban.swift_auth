@@ -14,7 +14,7 @@ const LoginForm = () => {
     };
 
     return (
-        <div className="max-w-md mx-auto mt-10 bg-white p-6 rounded-lg shadow-md">
+        <div className="max-w-md mx-auto mt-10 bg-white px-6 pt-6  rounded-lg shadow-md">
             <h2 className="text-2xl font-bold text-center mb-4">
                 Iniciar sesión
             </h2>
@@ -57,33 +57,35 @@ const LoginForm = () => {
                     )}
                 </div>
 
-                <div className="flex justify-between items-center">
-                    <Link
-                        href={route("swift-auth.password.request")}
-                        className="text-sm text-blue-500"
-                    >
-                        ¿Olvidaste tu contraseña?
-                    </Link>
+
+                <div className="">
                     <button
                         type="submit"
-                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 w-full rounded-lg"
                         disabled={processing}
                     >
                         {processing ? "Cargando..." : "Iniciar sesión"}
                     </button>
+                    <div className="text-center">
+
+                        <Link
+                            href={route("swift-auth.password.request")}
+                            className="text-sm text-blue-500"
+                        >
+                            ¿Olvidaste tu contraseña?
+                        </Link>
+
+                    </div>
                 </div>
             </form>
-
-            <div className="text-center mt-4">
-                <p className="text-sm">
-                    ¿No tienes cuenta?{" "}
-                    <Link
-                        href={route("swift-auth.register")}
-                        className="text-blue-500 font-medium hover:underline"
-                    >
-                        Regístrate aquí
-                    </Link>
-                </p>
+            <div className="text-center p-4">
+                <span>¿No tienes cuenta? </span>
+                <Link
+                    href={route("swift-auth.register")}
+                    className="text-sm text-blue-500"
+                >
+                    Registrate
+                </Link>
             </div>
         </div>
     );
