@@ -1,14 +1,24 @@
 import { Navbar } from "@/Components/Navbar/Navbar";
+import { usePage } from "@inertiajs/react";
+import { useEffect } from "react";
+
+interface Auth {
+    user: {
+        name: string;
+    };
+}
+
+interface PageProps {
+    auth?: Auth;
+}
+
 
 export default function Authenticated({
-    auth,
     children,
 }: {
-    auth?: {
-        user: { name: string };
-    };
     children: React.ReactNode;
 }) {
+    const { auth } = usePage().props as PageProps;
     return (
         <div>
             <Navbar user={auth?.user} />
