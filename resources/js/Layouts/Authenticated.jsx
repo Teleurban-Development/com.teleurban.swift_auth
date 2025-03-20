@@ -1,6 +1,8 @@
 import { Navbar } from "@/Components/Navbar/Navbar";
+import { usePage } from "@inertiajs/react";
 
-export default function Authenticated({ auth, children }) {
+export default function Authenticated({ children }) {
+    const { auth } = usePage().props;
     return (
         <div>
             <Navbar user={auth?.user} />
