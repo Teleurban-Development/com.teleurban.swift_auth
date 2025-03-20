@@ -73,6 +73,18 @@ const LoginForm = () => {
                     </button>
                 </div>
             </form>
+
+            <div className="text-center mt-4">
+                <p className="text-sm">
+                    ¿No tienes cuenta?{" "}
+                    <Link
+                        href={route("swift-auth.register")}
+                        className="text-blue-500 font-medium hover:underline"
+                    >
+                        Regístrate aquí
+                    </Link>
+                </p>
+            </div>
         </div>
     );
 };
