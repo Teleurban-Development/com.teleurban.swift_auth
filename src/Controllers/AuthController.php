@@ -17,8 +17,8 @@ class AuthController extends Controller
     protected function render($bladeView, $inertiaComponent, $data = [])
     {
         return Config::get('swift-auth.frontend') === 'blade'
-            ? view($bladeView, $data) 
-            : Inertia::render($inertiaComponent, $data); 
+            ? view($bladeView, $data)
+            : Inertia::render($inertiaComponent, $data);
     }
 
     public function showLoginForm()
@@ -81,8 +81,10 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        if($request->startSession){
+        if (!$request->startSession) {
             Auth::login($user);
+
+            return redirect()->to(Config::get('swift-auth.success_url'))->with('success', 'Registration successful.');
         }
 
         return redirect()->route('swift-auth.user.index')->with('success', 'Registration successful.');
@@ -97,8 +99,8 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            
-            return redirect()->route('swift-auth.user.index')->with('success', 'Login successful.');
+
+            return redirect()->to(Config::get('swift-auth.success_url'))->with('success', 'Login successful.');
         }
 
         return back()->with('error', 'Invalid credentials.');
