@@ -1,17 +1,27 @@
-import { useForm, Head } from "@inertiajs/react";
+import { Head, useForm } from "@inertiajs/react";
 import { FormEvent, ReactNode } from "react";
 import Authenticated from "../../Layouts/Authenticated";
-const CreateForm = () => {
-    const { data, setData, post, processing, errors } = useForm({
-        name: "",
-        email: "",
-        password: "",
-        password_confirmation: "",
+
+type EditFormProps = {
+    user: {
+        id: number;
+        name: string;
+        email: string;
+    };
+};
+
+const EditForm = ({ user }: EditFormProps) => {
+    const { data, setData, put, processing, errors } = useForm({
+        name: user.name,
+        email: user.email,
+
     });
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        post(route("swift-auth.store"));
+        put(route("swift-auth.user.update", user.id), {
+            onError: (errors) => alert(JSON.stringify(errors)),
+        });
     };
 
     const handleCancel = () => {
@@ -20,9 +30,9 @@ const CreateForm = () => {
 
     return (
         <>
-            <Head title="Nuevo usuario" />
+            <Head title="Editar usuario" />
             <div className="max-w-md mx-auto mt-10 bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-2xl font-bold text-center mb-4">Agregar usuario</h2>
+                <h2 className="text-2xl font-bold text-center mb-4">Editar usuario</h2>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -57,40 +67,6 @@ const CreateForm = () => {
                         )}
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium">
-                            Contraseña
-                        </label>
-                        <input
-                            type="password"
-                            name="password"
-                            value={data.password}
-                            onChange={(e) => setData("password", e.target.value)}
-                            className="w-full border rounded px-3 py-2 mt-1"
-                            required
-                        />
-                        {errors.password && (
-                            <p className="text-gray-500 text-sm">
-                                {errors.password}
-                            </p>
-                        )}
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium">
-                            Confirmar contraseña
-                        </label>
-                        <input
-                            type="password"
-                            name="password_confirmation"
-                            value={data.password_confirmation}
-                            onChange={(e) =>
-                                setData("password_confirmation", e.target.value)
-                            }
-                            className="w-full border rounded px-3 py-2 mt-1"
-                            required
-                        />
-                    </div>
 
                     <div className="flex justify-between items-center">
 
@@ -114,9 +90,10 @@ const CreateForm = () => {
                 </form>
             </div>
         </>
+
     );
 };
 
-CreateForm.layout = (page: ReactNode) => <Authenticated>{page}</Authenticated>;
+EditForm.layout = (page: ReactNode) => <Authenticated>{page}</Authenticated>;
 
-export default CreateForm;
+export default EditForm;

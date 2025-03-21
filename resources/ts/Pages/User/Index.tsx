@@ -1,9 +1,11 @@
-import { ReactNode } from "react";
+import { FormEvent, ReactNode } from "react";
 import Authenticated from "../../Layouts/Authenticated";
 import { PageProps } from "@/types";
 import { Link, Head } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 
-interface User {
+
+type User = {
     id: number;
     name: string;
     email: string;
@@ -14,10 +16,17 @@ type Props = {
 }
 
 const Index = ({ users }: PageProps<Props>) => {
+
+    const onDelete = (user: User) => {
+        const confirmDelete = window.confirm(`¿Estás seguro de que quieres eliminar el usuario ${user.name}?`);
+        if (confirmDelete) {
+            router.delete(route("swift-auth.user.destroy", user.id));
+        }
+    };
+
     return (
         <>
-            <Head title="Users" />
-
+            <Head title="Usuarios" />
             <div className="max-w-4xl mx-auto mt-10 bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold text-left mb-4">Usuarios</h2>
@@ -45,12 +54,16 @@ const Index = ({ users }: PageProps<Props>) => {
                                     <td className="border p-2">{user.email}</td>
                                     <td className="border p-2">
                                         <div className="flex justify-center space-x-2">
-                                        <a href={route("swift-auth.user.edit", user.id)}>
-                                            <img src="/icons/edit.svg" className="h-8" alt="" />
-                                        </a>
-                                        <a href={route("swift-auth.user.destroy", user.id)} >
-                                            <img src="/icons/destroy.svg" className="h-8 " alt="" />
-                                        </a>
+                                            <a href={route("swift-auth.user.edit", user.id)}>
+                                                <img src="/icons/edit.svg" className="h-8" alt="" />
+                                            </a>
+                                            <button onClick={() => onDelete(user)} className="cursor-pointer">
+                                                <img src="/icons/destroy.svg" className="h-8 " />
+
+                                            </button>
+
+                                            <a href={route("swift-auth.user.destroy", user.id)} >
+                                            </a>
 
                                         </div>
                                     </td>
@@ -70,6 +83,7 @@ const Index = ({ users }: PageProps<Props>) => {
                 </table>
             </div>
         </>
+
     );
 };
 

@@ -153,10 +153,10 @@ class AuthController extends Controller
     {
         $user = User::findOrFail($id);
 
+        //TODO: Unify the validation rules
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $id,
-            'password' => 'required|string|min:6|confirmed',
         ]);
 
         if ($validator->fails()) {
@@ -166,7 +166,6 @@ class AuthController extends Controller
         $user->update([
             'name' => $request->name ?? $user->name,
             'email' => $request->email ?? $user->email,
-            'password' => $request->password ? Hash::make($request->password) : $user->password,
         ]);
 
         return redirect()->route('swift-auth.user.index')->with('success', 'User updated successfully.');
