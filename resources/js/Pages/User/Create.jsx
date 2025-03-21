@@ -1,8 +1,7 @@
-import { Link, useForm, Head } from "@inertiajs/react";
-import { FormEvent, ReactNode } from "react";
-import Guest from "../Layouts/Guest";
+import { Link, useForm } from "@inertiajs/react";
+import Authenticated from "../../Layouts/Authenticated";
 
-const RegisterForm = () => {
+const CreateForm = () => {
     const { data, setData, post, processing, errors } = useForm({
         name: "",
         email: "",
@@ -10,22 +9,21 @@ const RegisterForm = () => {
         password_confirmation: "",
     });
 
-    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
-        post(route("swift-auth.store"),  {
-            onError: (error) => {
-               console.log(error);
+        post(route("swift-auth.store"));
+    };
 
-            },
-        });
+    const handleCancel = () => {
+        window.history.back();
     };
 
     return (
         <>
-            <Head title="Register" />
+            <Head title="New user" />
 
             <div className="max-w-md mx-auto mt-10 bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-2xl font-bold text-center mb-4">Registrarse</h2>
+                <h2 className="text-2xl font-bold text-center mb-4">Agregar usuario</h2>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -39,7 +37,7 @@ const RegisterForm = () => {
                             required
                         />
                         {errors.name && (
-                            <p className="text-red-500 text-sm">{errors.name}</p>
+                            <p className="text-gray-500 text-sm">{errors.name}</p>
                         )}
                     </div>
 
@@ -56,7 +54,7 @@ const RegisterForm = () => {
                             required
                         />
                         {errors.email && (
-                            <p className="text-red-500 text-sm">{errors.email}</p>
+                            <p className="text-gray-500 text-sm">{errors.email}</p>
                         )}
                     </div>
 
@@ -73,7 +71,7 @@ const RegisterForm = () => {
                             required
                         />
                         {errors.password && (
-                            <p className="text-red-500 text-sm">
+                            <p className="text-gray-500 text-sm">
                                 {errors.password}
                             </p>
                         )}
@@ -96,18 +94,22 @@ const RegisterForm = () => {
                     </div>
 
                     <div className="flex justify-between items-center">
-                        <Link
-                            href={route("swift-auth.login")}
-                            className="text-sm text-blue-500"
+
+
+                    <button
+                        type="button"
+                        className="bg-transparent hover:bg-gray-500 text-gray-700 font-semibold hover:text-white py-2 px-4 border border-gray-500 hover:border-transparent rounded"
+                        onClick={handleCancel}
                         >
-                            ¿Ya tienes cuenta? Inicia sesión
-                        </Link>
+                        Cancelar
+                        </button>
+
                         <button
                             type="submit"
-                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
                             disabled={processing}
                         >
-                            {processing ? "Registrando..." : "Registrarse"}
+                            {processing ? "Enviando..." : "Guardar"}
                         </button>
                     </div>
                 </form>
@@ -116,6 +118,6 @@ const RegisterForm = () => {
     );
 };
 
-RegisterForm.layout = (page: ReactNode) => <Guest>{page}</Guest>;
+CreateForm.layout = (page) => <Authenticated>{page}</Authenticated>;
 
-export default RegisterForm;
+export default CreateForm;
