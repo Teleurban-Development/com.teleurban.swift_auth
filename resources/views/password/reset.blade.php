@@ -1,5 +1,7 @@
 @extends('layouts.guest')
 
+@section('title', 'Reset password')
+
 @section('content')
     <h2 class="text-center">Restablecer contraseña</h2>
 

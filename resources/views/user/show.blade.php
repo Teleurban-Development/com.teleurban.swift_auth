@@ -1,5 +1,7 @@
 @extends('layouts.auth')
 
+@section('title', 'Update user')
+
 @section('content')
     <h2 class="text-center">Actualizar usuario</h2>
 
@@ -17,7 +19,8 @@
 
         <div class="mb-3">
             <label for="email" class="form-label">Correo electrónico:</label>
-            <input type="email" id="email" name="email" class="form-control" value="{{ old('email', $user->email) }}">
+            <input type="email" id="email" name="email" class="form-control"
+                value="{{ old('email', $user->email) }}">
             @error('email')
                 <small class="text-danger">{{ $message }}</small>
             @enderror

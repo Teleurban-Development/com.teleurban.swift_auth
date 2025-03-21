@@ -1,5 +1,7 @@
 @extends('layouts.guest')
 
+@section('title', 'Login')
+
 @section('content')
     <h2 class="text-center">Iniciar sesión</h2>
 

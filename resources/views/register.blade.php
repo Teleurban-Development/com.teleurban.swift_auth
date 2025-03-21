@@ -1,5 +1,7 @@
 @extends('layouts.guest')
 
+@section('title', 'Register')
+
 @section('content')
     <h2 class="text-center">Registro de usuario</h2>
 
