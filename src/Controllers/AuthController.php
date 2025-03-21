@@ -16,6 +16,15 @@ class AuthController extends Controller
 {
     protected function render($bladeView, $inertiaComponent, $data = [])
     {
+        // Pasar mensajes de flash a la vista
+        $flashMessages = [
+            'success' => session('success'),
+            'error' => session('error'),
+            'status' => session('status'),
+        ];
+
+        $data = array_merge($data, $flashMessages);
+
         return Config::get('swift-auth.frontend') === 'blade'
             ? view($bladeView, $data)
             : Inertia::render($inertiaComponent, $data);
@@ -45,6 +54,7 @@ class AuthController extends Controller
     {
         return $this->render('swift-auth::user.create', 'User/Create');
     }
+
     public function showEditUserForm($id)
     {
         $user = User::findOrFail($id);
@@ -116,7 +126,7 @@ class AuthController extends Controller
         return redirect()->route('swift-auth.login')->with('success', 'Logged out successfully.');
     }
 
-    public function sendResetLink(Request $request) // TODO: send link
+    public function sendResetLink(Request $request)
     {
         $request->validate(['email' => 'required|email|exists:users,email']);
 
@@ -124,17 +134,17 @@ class AuthController extends Controller
             $request->only('email')
         );
 
-        return $status === Password::ResetLinkSent
-            ? back()->with(['status' => __($status)])
+        return $status === Password::RESET_LINK_SENT
+            ? back()->with('status', __($status))
             : back()->withErrors(['email' => __($status)]);
     }
 
-    public function updatePassword(Request $request) // TODO: reset validate token
+    public function updatePassword(Request $request)
     {
         $request->validate([
             'email' => 'required|email|exists:users,email',
             'password' => 'required|min:6|confirmed',
-            'token' => 'required'
+            'token' => 'required',
         ]);
 
         $status = Password::reset(
@@ -145,7 +155,7 @@ class AuthController extends Controller
         );
 
         return $status === Password::PASSWORD_RESET
-            ? redirect()->route('login')->with('status', __($status))
+            ? redirect()->route('swift-auth.login')->with('status', __($status))
             : back()->withErrors(['email' => __($status)]);
     }
 
@@ -153,7 +163,6 @@ class AuthController extends Controller
     {
         $user = User::findOrFail($id);
 
-        //TODO: Unify the validation rules
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $id,
