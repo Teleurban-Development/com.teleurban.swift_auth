@@ -7,14 +7,28 @@ use Teleurban\SwiftAuth\Models\Role;
 use Teleurban\SwiftAuth\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Inertia\Inertia;
+use Illuminate\Support\Facades\Config;
 
 
 class RoleController extends Controller
 {
+    protected function render($bladeView, $inertiaComponent, $data = [])
+    {
+        // Pasar mensajes de flash a la vista
+        $flashMessages = [
+            'success' => session('success'),
+            'error' => session('error'),
+            'status' => session('status'),
+        ];
+
+        $data = array_merge($data, $flashMessages);
+
+        return  Inertia::render($inertiaComponent, $data);
+    }
     public function index()
     {
         $roles = Role::all();
-
         return $this->render('swift-auth::user.role.index', 'User/Role/Index', ['roles' => $roles]);
     }
 

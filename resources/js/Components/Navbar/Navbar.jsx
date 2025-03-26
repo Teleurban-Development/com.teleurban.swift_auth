@@ -16,7 +16,7 @@ export function Navbar({ user }) {
                         <Link href={route('swift-auth.user.index')} className="hover:text-gray-300">
                             Usuarios
                         </Link>
-                        <Link href="/roles" className="hover:text-gray-300">
+                        <Link href={route('swift-auth.user.role.index')} className="hover:text-gray-300">
                             Roles
                         </Link>
                     </div>

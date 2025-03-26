@@ -1,8 +1,7 @@
-import { FormEvent, ReactNode } from "react";
-import Authenticated from "../../../Layouts/Authenticated";
-import { PageProps } from "@/types";
-import { Link, Head } from "@inertiajs/react";
-import { router } from "@inertiajs/react";
+import { PageProps } from '@/types';
+import { Head, Link, router } from '@inertiajs/react';
+import { ReactNode } from 'react';
+import Authenticated from '../../../Layouts/Authenticated';
 
 type Role = {
     id: number;
@@ -17,23 +16,23 @@ type Props = {
 const Index = ({ roles }: PageProps<Props>) => {
     const onDelete = (role: Role) => {
         const confirmDelete = window.confirm(
-            `¿Estás seguro de que quieres eliminar el rol ${role.name}?`
+            `¿Estás seguro de que quieres eliminar el rol ${role.name}?`,
         );
         if (confirmDelete) {
-            router.delete(route("swift-auth.role.destroy", role.id));
+            router.delete(route('swift-auth.user.role.destroy', role.id));
         }
     };
 
     return (
         <>
             <Head title="Roles" />
-            <div className="max-w-4xl mx-auto mt-10 bg-white p-6 rounded-lg shadow-md">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-bold text-left mb-4">Roles</h2>
+            <div className="mx-auto mt-10 max-w-4xl rounded-lg bg-white p-6 shadow-md">
+                <div className="mb-4 flex items-center justify-between">
+                    <h2 className="mb-4 text-left text-2xl font-bold">Roles</h2>
 
                     <Link
-                        href={route("swift-auth.role.create")}
-                        className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                        href={route('swift-auth.user.role.create')}
+                        className="rounded bg-gray-500 px-4 py-2 font-bold text-white hover:bg-gray-700"
                     >
                         Nuevo rol
                     </Link>
@@ -61,8 +60,8 @@ const Index = ({ roles }: PageProps<Props>) => {
                                         <div className="flex justify-center space-x-2">
                                             <a
                                                 href={route(
-                                                    "swift-auth.role.edit",
-                                                    role.id
+                                                    'swift-auth.role.edit',
+                                                    role.id,
                                                 )}
                                             >
                                                 <img
@@ -77,14 +76,14 @@ const Index = ({ roles }: PageProps<Props>) => {
                                             >
                                                 <img
                                                     src="/icons/destroy.svg"
-                                                    className="h-8 "
+                                                    className="h-8"
                                                 />
                                             </button>
 
                                             <a
                                                 href={route(
-                                                    "swift-auth.role.destroy",
-                                                    role.id
+                                                    'swift-auth.user.role.destroy',
+                                                    role.id,
                                                 )}
                                             ></a>
                                         </div>
