@@ -26,43 +26,43 @@ const Index = ({ roles }: PageProps<Props>) => {
 
     return (
         <>
-            <Head title="Usuarios" />
+            <Head title="Roles" />
             <div className="max-w-4xl mx-auto mt-10 bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold text-left mb-4">
-                        Usuarios
+                        Roles
                     </h2>
 
                     <Link
-                        href={route("swift-auth.user.create")}
+                        href={route("swift-auth.role.create")}
                         className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
                     >
-                        Nuevo usuario
+                        Nuevo rol
                     </Link>
                 </div>
                 <table className="w-full border-collapse border border-gray-200">
                     <thead>
                         <tr className="bg-gray-100">
                             <th className="border p-2">Nombre</th>
-                            <th className="border p-2">Correo electrónico</th>
+                            <th className="border p-2">Descripción</th>
                             <th className="border p-2">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {users.length > 0 ? (
-                            users.map((user) => (
+                        {roles.length > 0 ? (
+                            roles.map((role) => (
                                 <tr
-                                    key={user.id}
+                                    key={role.id}
                                     className="text-center hover:bg-gray-50"
                                 >
-                                    <td className="border p-2">{user.name}</td>
-                                    <td className="border p-2">{user.email}</td>
+                                    <td className="border p-2">{role.name}</td>
+                                    <td className="border p-2">{role.description}</td>
                                     <td className="border p-2">
                                         <div className="flex justify-center space-x-2">
                                             <a
                                                 href={route(
-                                                    "swift-auth.user.edit",
-                                                    user.id
+                                                    "swift-auth.role.edit",
+                                                    role.id
                                                 )}
                                             >
                                                 <img
@@ -72,7 +72,7 @@ const Index = ({ roles }: PageProps<Props>) => {
                                                 />
                                             </a>
                                             <button
-                                                onClick={() => onDelete(user)}
+                                                onClick={() => onDelete(role)}
                                                 className="cursor-pointer"
                                             >
                                                 <img
@@ -83,8 +83,8 @@ const Index = ({ roles }: PageProps<Props>) => {
 
                                             <a
                                                 href={route(
-                                                    "swift-auth.user.destroy",
-                                                    user.id
+                                                    "swift-auth.role.destroy",
+                                                    role.id
                                                 )}
                                             ></a>
                                         </div>
@@ -97,7 +97,7 @@ const Index = ({ roles }: PageProps<Props>) => {
                                     colSpan={2}
                                     className="border p-4 text-center text-gray-500"
                                 >
-                                    No hay usuarios autenticados.
+                                    No hay roles registrados.
                                 </td>
                             </tr>
                         )}

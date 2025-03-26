@@ -11,7 +11,7 @@ const EditForm = ({ role }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        put(route("swift-auth.role.update", role.id), {
+        put(route("swift-auth.user.role.update", role.id), {
             onError: (errors) => alert(JSON.stringify(errors)),
         });
     };
