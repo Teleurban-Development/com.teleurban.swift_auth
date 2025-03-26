@@ -15,7 +15,7 @@ class RoleController extends Controller
     {
         $roles = Role::all();
 
-        return view('swift-auth::user.role.index')->with('roles', $roles);
+        return $this->render('swift-auth::user.role.index', 'User/Role/Index', ['roles' => $roles]);
     }
 
     public function create()

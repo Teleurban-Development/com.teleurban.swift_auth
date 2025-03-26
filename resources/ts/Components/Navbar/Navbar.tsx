@@ -1,5 +1,5 @@
-import { Link } from "@inertiajs/react";
-import { useState } from "react";
+import { Link } from '@inertiajs/react';
+import { useState } from 'react';
 // import { Menu, X } from "lucide-react";
 
 export function Navbar({ user }: { user?: { name: string } }) {
@@ -7,20 +7,20 @@ export function Navbar({ user }: { user?: { name: string } }) {
 
     return (
         <nav className="bg-gray-900 text-white">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center py-4">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between py-4">
                     <div className="flex space-x-6">
                         <Link href="/" className="hover:text-gray-300">
                             Inicio
                         </Link>
                         <Link
-                            href={route("swift-auth.user.index")}
+                            href={route('swift-auth.user.index')}
                             className="hover:text-gray-300"
                         >
                             Usuarios
                         </Link>
                         <Link
-                            href={route("swift-auth.user.role.index")}
+                            href={route('swift-auth.user.role.index')}
                             className="hover:text-gray-300"
                         >
                             Roles
@@ -34,17 +34,17 @@ export function Navbar({ user }: { user?: { name: string } }) {
                         </button>
                     </div> */}
 
-                    <div className="hidden sm:flex space-x-4">
+                    <div className="hidden space-x-4 sm:flex">
                         {user ? (
                             <>
                                 <span className="px-4 py-2">{user.name}</span>
                                 <form
                                     method="GET"
-                                    action={route("swift-auth.logout")}
+                                    action={route('swift-auth.logout')}
                                 >
                                     <button
                                         type="submit"
-                                        className="bg-red-500 px-4 py-2 rounded hover:bg-red-600"
+                                        className="rounded bg-red-500 px-4 py-2 hover:bg-red-600"
                                     >
                                         Cerrar sesión
                                     </button>
@@ -53,7 +53,7 @@ export function Navbar({ user }: { user?: { name: string } }) {
                         ) : (
                             <Link
                                 href="/login"
-                                className="bg-blue-500 px-4 py-2 rounded hover:bg-blue-600"
+                                className="rounded bg-blue-500 px-4 py-2 hover:bg-blue-600"
                             >
                                 Iniciar sesión
                             </Link>
@@ -63,7 +63,7 @@ export function Navbar({ user }: { user?: { name: string } }) {
             </div>
 
             {isOpen && (
-                <div className="sm:hidden bg-gray-800 py-2">
+                <div className="bg-gray-800 py-2 sm:hidden">
                     <div className="flex flex-col items-center space-y-4">
                         <Link href="/" className="hover:text-gray-300">
                             Inicio
@@ -81,7 +81,7 @@ export function Navbar({ user }: { user?: { name: string } }) {
                                 <form method="POST" action="/logout">
                                     <button
                                         type="submit"
-                                        className="bg-red-500 px-4 py-2 rounded hover:bg-red-600"
+                                        className="rounded bg-red-500 px-4 py-2 hover:bg-red-600"
                                     >
                                         Cerrar sesión
                                     </button>
@@ -90,7 +90,7 @@ export function Navbar({ user }: { user?: { name: string } }) {
                         ) : (
                             <Link
                                 href="/login"
-                                className="bg-blue-500 px-4 py-2 rounded hover:bg-blue-600"
+                                className="rounded bg-blue-500 px-4 py-2 hover:bg-blue-600"
                             >
                                 Iniciar sesión
                             </Link>
