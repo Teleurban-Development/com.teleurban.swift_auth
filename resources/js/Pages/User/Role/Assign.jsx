@@ -8,8 +8,12 @@ const AssignForm = () => {
         role: ""
     });
 
-    const handleChange = (event) => {
+    const handleUserChange = (event) => {
         setData("user", event.target.value);
+    };
+
+    const handleRoleChange = (event) => {
+        setData("role", event.target.value);
     };
 
     const handleSubmit = (e) => {
@@ -31,7 +35,7 @@ const AssignForm = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium">Usuario</label>
-                        <select id="users" onChange={handleChange}>
+                        <select id="users" onChange={handleUserChange}>
                             {users.map((user) => (
                             <option key={user.id} value={user.id}>
                                 {user.name}
@@ -44,7 +48,13 @@ const AssignForm = () => {
                         <label className="block text-sm font-medium">
                             Rol
                         </label>
-
+                        <select id="roles" onChange={handleRoleChange}>
+                            {roles.map((role) => (
+                            <option key={role.id} value={role.id}>
+                                {role.name}
+                            </option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className="flex justify-between items-center">

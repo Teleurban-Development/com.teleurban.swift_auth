@@ -1,6 +1,6 @@
 import { Head } from "@inertiajs/react";
 import { ReactNode } from "react";
-import Authenticated from "../../Layouts/Authenticated";
+import Authenticated from "../../../Layouts/Authenticated";
 
 const Index = ({ roles }) => {
     return (

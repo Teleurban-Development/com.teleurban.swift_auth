@@ -1,6 +1,6 @@
 import { Head, useForm } from "@inertiajs/react";
 import { FormEvent, ReactNode } from "react";
-import Authenticated from "../../Layouts/Authenticated";
+import Authenticated from "../../../Layouts/Authenticated";
 
 const EditForm = ({ role }) => {
     const { data, setData, put, processing, errors } = useForm({

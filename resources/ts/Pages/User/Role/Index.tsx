@@ -1,5 +1,5 @@
 import { FormEvent, ReactNode } from "react";
-import Authenticated from "../../Layouts/Authenticated";
+import Authenticated from "../../../Layouts/Authenticated";
 import { PageProps } from "@/types";
 import { Link, Head } from "@inertiajs/react";
 import { router } from "@inertiajs/react";
@@ -29,9 +29,7 @@ const Index = ({ roles }: PageProps<Props>) => {
             <Head title="Roles" />
             <div className="max-w-4xl mx-auto mt-10 bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-bold text-left mb-4">
-                        Roles
-                    </h2>
+                    <h2 className="text-2xl font-bold text-left mb-4">Roles</h2>
 
                     <Link
                         href={route("swift-auth.role.create")}
@@ -56,7 +54,9 @@ const Index = ({ roles }: PageProps<Props>) => {
                                     className="text-center hover:bg-gray-50"
                                 >
                                     <td className="border p-2">{role.name}</td>
-                                    <td className="border p-2">{role.description}</td>
+                                    <td className="border p-2">
+                                        {role.description}
+                                    </td>
                                     <td className="border p-2">
                                         <div className="flex justify-center space-x-2">
                                             <a

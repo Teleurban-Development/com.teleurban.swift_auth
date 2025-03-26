@@ -1,5 +1,5 @@
 import { Link, useForm } from "@inertiajs/react";
-import Authenticated from "../../Layouts/Authenticated";
+import Authenticated from "../../../Layouts/Authenticated";
 
 const CreateForm = () => {
     const { data, setData, post, processing, errors } = useForm({
