@@ -6,7 +6,7 @@
     "require": {
         "php": "^8.2",
         "illuminate/support": "*",
-        "laravel/framework": "^12.0",
+        "laravel/framework": "^10.0",
         "laravel/tinker": "^2.10.1"
     },
     "require-dev": {
@@ -15,8 +15,7 @@
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.41",
         "mockery/mockery": "^1.6",
-        "nunomaduro/collision": "^8.6",
-        "phpunit/phpunit": "^11.5.3"
+        "nunomaduro/collision": "^8.6"
     },
     "autoload": {
         "psr-4": {
