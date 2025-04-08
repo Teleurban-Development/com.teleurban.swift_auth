@@ -6,8 +6,8 @@ use Illuminate\Console\Command;
 
 class InstallSwiftAuth extends Command
 {
-    protected $signature = 'swift-auth:install';
-    protected $description = 'Instala SwiftAuth: configura, migra y publica archivos';
+    protected $signature    = 'swift-auth:install';
+    protected $description  = 'Instala SwiftAuth: configura, migra y publica archivos';
 
     public function handle()
     {
@@ -39,20 +39,20 @@ class InstallSwiftAuth extends Command
         $this->call('vendor:publish', ['--provider' => 'Teleurban\SwiftAuth\Providers\SwiftAuthServiceProvider', '--tag' => 'swift-auth:migrations']);
         $this->call('migrate');
 
-
         $this->info('Importando iconos...');
         $this->call('vendor:publish', ['--provider' => 'Teleurban\SwiftAuth\Providers\SwiftAuthServiceProvider', '--tag' => 'swift-auth:icons']);
-        
+
 
         $this->info('Instalación completada.');
     }
-    protected function installBlade()
+
+    protected function installBlade(): void
     {
         $this->info('Instalando vistas Blade...');
         $this->call('vendor:publish', ['--provider' => 'Teleurban\SwiftAuth\Providers\SwiftAuthServiceProvider', '--tag' => 'swift-auth:views']);
     }
 
-    protected function installJavaScript()
+    protected function installJavaScript(): void
     {
         $this->info('Instalando vistas en React con JavaScript...');
         $this->call('vendor:publish', ['--provider' => 'Teleurban\SwiftAuth\Providers\SwiftAuthServiceProvider', '--tag' => 'swift-auth:js-react']);
@@ -60,7 +60,7 @@ class InstallSwiftAuth extends Command
         $this->warn('Recuerda ejecutar: npm install && npm run dev');
     }
 
-    protected function installTypeScript()
+    protected function installTypeScript(): void
     {
         $this->info('Instalando vistas en React con TypeScript...');
         $this->call('vendor:publish', ['--provider' => 'Teleurban\SwiftAuth\Providers\SwiftAuthServiceProvider', '--tag' => 'swift-auth:ts-react']);

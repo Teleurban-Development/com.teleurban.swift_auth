@@ -8,8 +8,6 @@ use Teleurban\SwiftAuth\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Config;
-
 
 class RoleController extends Controller
 {

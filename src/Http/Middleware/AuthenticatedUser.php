@@ -1,6 +1,6 @@
 <?php
 
-namespace Teleurban\SwiftAuth\Middleware;
+namespace Teleurban\SwiftAuth\Http\Middleware;
 
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;

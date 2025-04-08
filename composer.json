@@ -1,61 +1,47 @@
 {
     "name": "teleurban/switft-auth",
-    "type": "library",
     "description": "Bottled authentication for Laravel projects",
-    "license": "",
+    "version": "0.1.0",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Raul Cruz",
+            "email": "rcruz@teleurban.mx"
+        },
+        {
+            "name": "Guillermo Corona",
+            "email": "gcorona@teleurban.mx"
+        }
+    ],
     "require": {
         "php": "^8.2",
-        "illuminate/support": "*",
-        "laravel/framework": "^11.0",
-        "laravel/tinker": "^2.10.1"
+        "illuminate/support": "^11.21"
     },
     "require-dev": {
-        "fakerphp/faker": "^1.23",
-        "laravel/pail": "^1.2.2",
-        "laravel/pint": "^1.13",
-        "laravel/sail": "^1.41",
-        "mockery/mockery": "^1.6",
-        "nunomaduro/collision": "^8.6"
+        "laravel/helpers": "^1.7",
+        "laravel/framework": "^11.21",
+        "laravel/facade-documenter": "dev-main"
     },
     "autoload": {
         "psr-4": {
             "Teleurban\\SwiftAuth\\": "/src"
         }
     },
-    "autoload-dev": {
-        "psr-4": {
-            "Tests\\": "tests/"
-        }
-    },
     "scripts": {
-        "post-autoload-dump": [
-            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi"
-        ],
-        "post-install-cmd": [
-            "@php artisan swift-auth:install"
-        ],
-        "post-update-cmd": [
-            "@php artisan swift-auth:install"
-        ],
-        "post-root-package-install": [
-            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
-        ],
-        "post-create-project-cmd": [
-            "@php artisan key:generate --ansi",
-            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
-            "@php artisan migrate --graceful --ansi"
-        ],
-        "dev": [
-            "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite"
-        ]
+        "post-autoload-dump": []
     },
     "extra": {
         "laravel": {
             "providers": [
                 "Teleurban\\SwiftAuth\\Providers\\SwiftAuthServiceProvider"
             ]
+        }
+    },
+    "repositories": {
+        "facade-documenter": {
+            "type": "vcs",
+            "url": "git@github.com:laravel/facade-documenter.git"
         }
     },
     "config": {
