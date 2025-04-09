@@ -52,25 +52,25 @@ class AuthController extends Controller
 
     public function showNewUserForm()
     {
-        return $this->render('swift-auth::user.create', 'User/Create');
+        return $this->render('swift-auth::user.create', 'user/Create');
     }
 
     public function showEditUserForm($id)
     {
         $user = User::findOrFail($id);
-        return $this->render('swift-auth::user.edit', 'User/Edit', ['user' => $user]);
+        return $this->render('swift-auth::user.edit', 'user/Edit', ['user' => $user]);
     }
 
     public function index()
     {
         $users = User::all();
-        return $this->render('swift-auth::user.index', 'User/Index', ['users' => $users]);
+        return $this->render('swift-auth::user.index', 'user/Index', ['users' => $users]);
     }
 
     public function show($id)
     {
         $user = User::findOrFail($id);
-        return $this->render('swift-auth::user.show', 'User/Show', ['user' => $user]);
+        return $this->render('swift-auth::user.show', 'user/Show', ['user' => $user]);
     }
 
     public function store(Request $request)

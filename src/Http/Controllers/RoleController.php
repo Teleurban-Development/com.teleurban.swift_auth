@@ -27,7 +27,7 @@ class RoleController extends Controller
     public function index()
     {
         $roles = Role::all();
-        return $this->render('swift-auth::user.role.index', 'User/Role/Index', ['roles' => $roles]);
+        return $this->render('swift-auth::user.role.index', 'user/role/Index', ['roles' => $roles]);
     }
 
     public function create()
