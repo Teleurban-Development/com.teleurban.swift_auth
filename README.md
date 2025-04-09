@@ -1,7 +1,7 @@
 
 # Swift Auth
 
-Swift Auth is a robust and efficient system designed for user management, providing an intuitive and scalable solution to manage access and permissions.
+Swift Auth is an efficient system designed for user management, providing an intuitive and scalable solution to manage access and permissions.
 
 
 ## Environment Variables
@@ -31,7 +31,16 @@ with `SWIFT_AUTH_SUCCESS_URL` indicates which path to go to once logged in.
 - Create project
 - cd my-project
 
+**Composer**
+```bash
+  composer require teleurban/switft-auth
+``` 
+if it displays an error uses: 
 
+**Composer beta**
+```bash
+  composer require teleurban/switft-auth:dev-main
+``` 
 
 **Swift auth Installation**
 ```bash
@@ -39,21 +48,20 @@ with `SWIFT_AUTH_SUCCESS_URL` indicates which path to go to once logged in.
 ``` 
 **Once the command is executed, it asks if you want to publish different files**
 
-# Note:  
-### if you want to work locally with the swift auth repository
 
-- clone the swift auth repository to the same height as your main project 
+**Run migrations**
+```bash
+  php artisan migrate
+``` 
 
-- add the following to´your `composer.json` file:
+
+## Middleware
+
+The Middleware must be added to the routes that require it as follows: 
 
 ```bash
-  "repositories": [
-        {
-            "type": "path",
-            "url": "route-to-folder/com.teleurban.swift_auth",
-            "options": {
-                "symlink": true
-            }
-        }
-    ],
+  middleware('SwiftAuthMiddleware')
 ``` 
+
+
+
