@@ -1,7 +1,7 @@
 <?php
 
-use Teleurban\SwiftAuth\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
+use Teleurban\SwiftAuth\Http\Controllers\RoleController;
 
 Route::prefix('roles')->as('role.')->group(function () {
     Route::get('', [RoleController::class, 'index'])->name('index');

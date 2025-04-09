@@ -1,6 +1,6 @@
 <?php
 
-namespace Teleurban\SwiftAuth\Controllers;
+namespace Teleurban\SwiftAuth\Http\Controllers;
 
 use Illuminate\Support\Facades\Validator;
 use Teleurban\SwiftAuth\Models\Role;

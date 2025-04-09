@@ -1,14 +1,14 @@
 <?php
 
-use Teleurban\SwiftAuth\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
+use Teleurban\SwiftAuth\Http\Controllers\AuthController;
 
 Route::middleware('SwiftAuthMiddleware')->prefix('users')->as('user.')->group(
     function () {
         Route::get('', [AuthController::class, 'index'])->name('index');
         Route::post('', [AuthController::class, 'store'])->name('store');
         Route::get('create', [AuthController::class, 'showNewUserForm'])->name('create');
-        
+
         Route::prefix('{id}')->group(
             function () {
                 Route::get('', [AuthController::class, 'show'])->name('show');
