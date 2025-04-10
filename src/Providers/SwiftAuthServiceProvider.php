@@ -23,16 +23,19 @@ final class SwiftAuthServiceProvider extends ServiceProvider
 
         $this->publishes(
             [
+                __DIR__ . '/../Models' => app_path('Models'),
+            ],
+            ['swift-auth:models']
+        );
+
+        $this->publishes(
+            [
                 __DIR__ . '/../resources/views' => resource_path('views'),
             ],
             [
                 'swift-auth:views'
             ]
         );
-
-        $this->publishes([
-            __DIR__ . '/../Models/User.php' => app_path('Models/User.php'),
-        ], ['swift-auth:models']);
 
         $this->loadMigrationsFrom(__DIR__ . '/../migrations');
         $this->publishes(

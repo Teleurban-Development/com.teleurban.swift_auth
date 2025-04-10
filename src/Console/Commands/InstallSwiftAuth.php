@@ -13,7 +13,6 @@ class InstallSwiftAuth extends Command
     {
         $this->info('Iniciando instalación de SwiftAuth...');
 
-        // Publica archivos de configuración
         $this->call('vendor:publish', ['--provider' => 'Teleurban\SwiftAuth\Providers\SwiftAuthServiceProvider', '--tag' => 'swift-auth:config']);
 
         $choice = $this->choice(
@@ -42,6 +41,9 @@ class InstallSwiftAuth extends Command
         $this->info('Importando iconos...');
         $this->call('vendor:publish', ['--provider' => 'Teleurban\SwiftAuth\Providers\SwiftAuthServiceProvider', '--tag' => 'swift-auth:icons']);
 
+
+        $this->info('Importando modelos...');
+        $this->call('vendor:publish', ['--provider' => 'Teleurban\SwiftAuth\Providers\SwiftAuthServiceProvider', '--tag' => 'swift-auth:models']);
 
         $this->info('Instalación completada.');
     }
