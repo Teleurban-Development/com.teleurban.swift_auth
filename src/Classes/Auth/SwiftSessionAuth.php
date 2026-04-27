@@ -60,11 +60,34 @@ class SwiftSessionAuth
         ?string $deviceName = null,
         bool $remember = false,
     ): array {
-        $this->session->regenerate(true);
+        $metadata = $this->extractAgentMetadata($userAgent);
+        $now = CarbonImmutable::now();
 
+        $sessionId = $this->initializeLoginSession($user, $now);
+
+        $evicted = $this->recordAndEnforceSessionLimits(
+            user: $user,
+            sessionId: $sessionId,
+            ipAddress: $ipAddress,
+            userAgent: $userAgent,
+            deviceName: $deviceName,
+            metadata: $metadata,
+            now: $now,
+        );
+
+        $this->queueRememberTokenIfRequested($remember, $user, $ipAddress, $userAgent, $deviceName, $metadata);
+        $this->dispatchLoginEvent($user, $sessionId, $ipAddress);
+
+        return [
+            'evicted_session_ids' => $evicted,
+        ];
+    }
+
+    private function initializeLoginSession(User $user, CarbonImmutable $now): string
+    {
+        $this->session->regenerate(true);
         $this->cachedUser = $user;
 
-        $now = CarbonImmutable::now();
         $sessionId = $this->session->getId();
         $absoluteExpiry = $this->getAbsoluteExpiry($now);
 
@@ -74,12 +97,27 @@ class SwiftSessionAuth
         $this->session->put($this->sessionKey, $user->getKey());
         $this->session->put($this->sessionUidKey, $sessionId);
         $this->session->put($this->createdAtKey, $now->toIso8601String());
+
         if ($absoluteExpiry !== null) {
             $this->session->put($this->absoluteExpiryKey, $absoluteExpiry->toIso8601String());
         }
 
-        $metadata = $this->extractAgentMetadata($userAgent);
+        return $sessionId;
+    }
 
+    /**
+     * @param  array{platform:null|string,browser:null|string} $metadata
+     * @return array<int, string>
+     */
+    private function recordAndEnforceSessionLimits(
+        User $user,
+        string $sessionId,
+        ?string $ipAddress,
+        ?string $userAgent,
+        ?string $deviceName,
+        array $metadata,
+        CarbonImmutable $now,
+    ): array {
         $this->sessionManager->record(
             user: $user,
             sessionId: $sessionId,
@@ -91,32 +129,45 @@ class SwiftSessionAuth
             lastActivity: $now,
         );
 
-        $evicted = $this->sessionManager->enforceLimits(
+        return $this->sessionManager->enforceLimits(
             user: $user,
             currentSessionId: $sessionId,
         );
+    }
 
-        if ($remember) {
-            $this->rememberMeService->queueToken(
-                user: $user,
-                ipAddress: $ipAddress,
-                userAgent: $userAgent,
-                deviceName: $deviceName,
-                platform: $metadata['platform'],
-                browser: $metadata['browser'],
-            );
+    /**
+     * @param array{platform:null|string,browser:null|string} $metadata
+     */
+    private function queueRememberTokenIfRequested(
+        bool $remember,
+        User $user,
+        ?string $ipAddress,
+        ?string $userAgent,
+        ?string $deviceName,
+        array $metadata,
+    ): void {
+        if (!$remember) {
+            return;
         }
 
+        $this->rememberMeService->queueToken(
+            user: $user,
+            ipAddress: $ipAddress,
+            userAgent: $userAgent,
+            deviceName: $deviceName,
+            platform: $metadata['platform'],
+            browser: $metadata['browser'],
+        );
+    }
+
+    private function dispatchLoginEvent(User $user, string $sessionId, ?string $ipAddress): void
+    {
         $this->dispatchEvent(new UserLoggedIn(
             $user->getKey(),
             $sessionId,
             $ipAddress,
             $this->getDriverMetadata()
         ));
-
-        return [
-            'evicted_session_ids' => $evicted,
-        ];
     }
 
     /**

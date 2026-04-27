@@ -11,7 +11,6 @@
 namespace Equidna\SwiftAuth\Tests\Unit\Services;
 
 use Equidna\SwiftAuth\Classes\Auth\Services\UserTokenService;
-use Equidna\SwiftAuth\Models\User;
 use Equidna\SwiftAuth\Tests\TestCase;
 
 class UserTokenServiceTest extends TestCase
@@ -25,7 +24,7 @@ class UserTokenServiceTest extends TestCase
     {
         // Arrange
         $service = new UserTokenService();
-        $user = User::factory()->create();
+        $user = $this->createTestUser();
 
         // Act
         $result = $service->createToken(
@@ -48,7 +47,7 @@ class UserTokenServiceTest extends TestCase
     {
         // Arrange
         $service = new UserTokenService();
-        $user = User::factory()->create();
+        $user = $this->createTestUser();
 
         // Act
         $result = $service->createToken(
@@ -69,7 +68,7 @@ class UserTokenServiceTest extends TestCase
     {
         // Arrange
         $service = new UserTokenService();
-        $user = User::factory()->create();
+        $user = $this->createTestUser();
         $abilities = ['posts:read', 'posts:write'];
 
         // Act
@@ -95,7 +94,7 @@ class UserTokenServiceTest extends TestCase
     {
         // Arrange
         $service = new UserTokenService();
-        $user = User::factory()->create();
+        $user = $this->createTestUser();
 
         // Act
         $result = $service->createToken(
@@ -119,7 +118,7 @@ class UserTokenServiceTest extends TestCase
     {
         // Arrange
         $service = new UserTokenService();
-        $user = User::factory()->create();
+        $user = $this->createTestUser();
         $created = $service->createToken($user, 'Test Token');
         $plainToken = $created['token'];
 

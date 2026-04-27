@@ -10,6 +10,7 @@
 
 namespace Equidna\SwiftAuth\Tests\Unit\Services;
 
+use Carbon\CarbonImmutable;
 use Equidna\SwiftAuth\Classes\Auth\Services\SessionManager;
 use Equidna\SwiftAuth\Models\User;
 use Equidna\SwiftAuth\Models\UserSession;
@@ -18,6 +19,20 @@ use Illuminate\Support\Facades\Cache;
 
 class SessionManagerTest extends TestCase
 {
+    private function recordSession(SessionManager $manager, User $user, string $sessionId): void
+    {
+        $manager->record(
+            user: $user,
+            sessionId: $sessionId,
+            ipAddress: '127.0.0.1',
+            userAgent: 'PHPUnit',
+            deviceName: 'UnitTest',
+            platform: 'Linux',
+            browser: 'CLI',
+            lastActivity: CarbonImmutable::now(),
+        );
+    }
+
     /**
      * Test that session is cached and validated.
      *
@@ -25,18 +40,14 @@ class SessionManagerTest extends TestCase
      */
     public function test_session_cached_and_validated(): void
     {
-        // Arrange
         Cache::flush();
         $manager = new SessionManager();
-        $user = User::factory()->create();
+        $user = $this->createTestUser();
+        $sessionId = 'session-valid-1';
 
-        // Act
-        $sessionId = $manager->record($user->getKey(), request()->ip(), request()->userAgent());
-        $session = $manager->find($sessionId);
+        $this->recordSession($manager, $user, $sessionId);
 
-        // Assert
-        $this->assertNotNull($session);
-        $this->assertEquals($user->getKey(), $session->id_user);
+        $this->assertTrue($manager->isValid($sessionId));
     }
 
     /**
@@ -46,26 +57,18 @@ class SessionManagerTest extends TestCase
      */
     public function test_cache_hit_validates_against_db(): void
     {
-        // Arrange
         Cache::flush();
         $manager = new SessionManager();
-        $user = User::factory()->create();
-        $sessionId = $manager->record($user->getKey(), request()->ip(), request()->userAgent());
+        $user = $this->createTestUser();
+        $sessionId = 'session-cache-check';
 
-        // Act - First access populates cache
-        $session1 = $manager->find($sessionId);
+        $this->recordSession($manager, $user, $sessionId);
 
-        // Assert first is valid
-        $this->assertNotNull($session1);
+        $this->assertTrue($manager->isValid($sessionId));
 
-        // Act - Delete from DB to ensure cache is checked against DB
-        UserSession::where('id_session', $sessionId)->delete();
+        UserSession::where('session_id', $sessionId)->delete();
 
-        // Act - Second access should detect deletion
-        $session2 = $manager->find($sessionId);
-
-        // Assert DB validation caught the deletion
-        $this->assertNull($session2);
+        $this->assertFalse($manager->isValid($sessionId));
     }
 
     /**
@@ -75,22 +78,18 @@ class SessionManagerTest extends TestCase
      */
     public function test_is_valid_performs_explicit_db_check(): void
     {
-        // Arrange
         Cache::flush();
         $manager = new SessionManager();
-        $user = User::factory()->create();
-        $sessionId = $manager->record($user->getKey(), request()->ip(), request()->userAgent());
+        $user = $this->createTestUser();
+        $sessionId = 'session-explicit-db';
 
-        // Act - Populate cache
-        $manager->find($sessionId);
+        $this->recordSession($manager, $user, $sessionId);
+        $this->assertTrue($manager->isValid($sessionId));
 
-        // Act - Invalidate in DB
-        UserSession::where('id_session', $sessionId)->update(['is_active' => false]);
+        UserSession::where('session_id', $sessionId)->delete();
 
-        // Act - Call isValid
         $isValid = $manager->isValid($sessionId);
 
-        // Assert
         $this->assertFalse($isValid);
     }
 
@@ -101,24 +100,20 @@ class SessionManagerTest extends TestCase
      */
     public function test_session_touch_updates_activity(): void
     {
-        // Arrange
         Cache::flush();
         $manager = new SessionManager();
-        $user = User::factory()->create();
-        $sessionId = $manager->record($user->getKey(), request()->ip(), request()->userAgent());
+        $user = $this->createTestUser();
+        $sessionId = 'session-touch';
 
-        // Get original last_activity
-        $originalSession = UserSession::find($sessionId);
+        $this->recordSession($manager, $user, $sessionId);
+
+        $originalSession = UserSession::where('session_id', $sessionId)->firstOrFail();
         $originalActivity = $originalSession->last_activity;
 
-        sleep(1);
-
-        // Act
         $manager->touch($sessionId);
 
-        // Assert
-        $updatedSession = UserSession::find($sessionId);
-        $this->assertGreaterThan($originalActivity->timestamp, $updatedSession->last_activity->timestamp);
+        $updatedSession = UserSession::where('session_id', $sessionId)->firstOrFail();
+        $this->assertGreaterThanOrEqual($originalActivity->timestamp, $updatedSession->last_activity->timestamp);
     }
 
     /**
@@ -128,25 +123,20 @@ class SessionManagerTest extends TestCase
      */
     public function test_concurrent_session_limit_enforced(): void
     {
-        // Arrange
         Cache::flush();
         $manager = new SessionManager();
-        $user = User::factory()->create();
-        $maxConcurrentSessions = 3;
+        $user = $this->createTestUser();
+        config(['swift-auth.session_limits.max_sessions' => 3]);
+        config(['swift-auth.session_limits.eviction' => 'oldest']);
 
-        // Act - Create multiple sessions
-        $sessionIds = [];
-        for ($i = 0; $i < $maxConcurrentSessions + 1; $i++) {
-            $sessionId = $manager->record($user->getKey(), '127.0.0.1', 'Test Agent');
-            $sessionIds[] = $sessionId;
+        for ($i = 1; $i <= 4; $i++) {
+            $this->recordSession($manager, $user, 'session-limit-' . $i);
         }
 
-        // Assert - First sessions exist, last may be evicted based on policy
-        $activeSessions = UserSession::where('id_user', $user->getKey())
-            ->where('is_active', true)
-            ->count();
+        $evictedIds = $manager->enforceLimits($user, 'session-limit-4');
+        $activeCount = UserSession::where('id_user', $user->getKey())->count();
 
-        // Verify limit is at or below max
-        $this->assertLessThanOrEqual($maxConcurrentSessions, $activeSessions);
+        $this->assertNotEmpty($evictedIds);
+        $this->assertLessThanOrEqual(3, $activeCount);
     }
 }

@@ -20,7 +20,10 @@
     "require": {
         "php": "^8.2 || ^8.3 || ^8.4",
         "equidna/bird-flock": "^1.2",
+        "illuminate/http": "*",
+        "illuminate/routing": "*",
         "illuminate/support": "*",
+        "inertiajs/inertia-laravel": "2.0",
         "laragear/webauthn": "^4.0",
         "laravel/helpers": "*",
         "laravel/sanctum": "^4.3"
@@ -34,7 +37,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Equidna\\SwiftAuth\\": "src/"
+            "Equidna\\SwiftAuth\\": "src/",
+            "Equidna\\Toolkit\\": "src/Toolkit/"
         }
     },
     "autoload-dev": {

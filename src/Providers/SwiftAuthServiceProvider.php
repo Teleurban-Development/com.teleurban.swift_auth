@@ -285,57 +285,6 @@ final class SwiftAuthServiceProvider extends ServiceProvider
                 'supported' => ['bcrypt', 'argon', 'argon2id', 'null (default)'],
             ]);
         }
-    }
-
-    /**
-     * Registers listeners for SwiftAuth events.
-     *
-     * Applications can override these listeners by registering their own listeners
-     * for the same event classes.
-     *
-     * @return void
-     */
-    private function registerEventListeners(): void
-    {
-        $dispatcher = $this->app->make(Dispatcher::class);
-
-        $dispatcher->listen(UserLoggedIn::class, function (UserLoggedIn $event): void {
-            logger()->info('swift-auth.user.logged-in', [
-                'user_id' => $event->userId,
-                'session_id' => $event->sessionId,
-                'ip' => $event->ipAddress,
-                'driver' => $event->driverMetadata,
-            ]);
-        });
-
-        $dispatcher->listen(UserLoggedOut::class, function (UserLoggedOut $event): void {
-            logger()->info('swift-auth.user.logged-out', [
-                'user_id' => $event->userId,
-                'session_id' => $event->sessionId,
-                'ip' => $event->ipAddress,
-                'driver' => $event->driverMetadata,
-            ]);
-        });
-
-        $dispatcher->listen(SessionEvicted::class, function (SessionEvicted $event): void {
-            logger()->info('swift-auth.session.evicted', [
-                'user_id' => $event->userId,
-                'session_id' => $event->sessionId,
-                'ip' => $event->ipAddress,
-                'driver' => $event->driverMetadata,
-            ]);
-        });
-
-        $dispatcher->listen(MfaChallengeStarted::class, function (MfaChallengeStarted $event): void {
-            logger()->info('swift-auth.mfa.challenge-started', [
-                'user_id' => $event->userId,
-                'session_id' => $event->sessionId,
-                'ip' => $event->ipAddress,
-                'driver' => $event->driverMetadata,
-            ]);
-        });
-    }
-}
 
         // Validate session lifetimes
         $idleTimeout = (int) config('swift-auth.session_lifetimes.idle_timeout_seconds', 900);
@@ -411,3 +360,54 @@ final class SwiftAuthServiceProvider extends ServiceProvider
                 ]);
             }
         }
+    }
+
+    /**
+     * Registers listeners for SwiftAuth events.
+     *
+     * Applications can override these listeners by registering their own listeners
+     * for the same event classes.
+     *
+     * @return void
+     */
+    private function registerEventListeners(): void
+    {
+        $dispatcher = $this->app->make(Dispatcher::class);
+
+        $dispatcher->listen(UserLoggedIn::class, function (UserLoggedIn $event): void {
+            logger()->info('swift-auth.user.logged-in', [
+                'user_id' => $event->userId,
+                'session_id' => $event->sessionId,
+                'ip' => $event->ipAddress,
+                'driver' => $event->driverMetadata,
+            ]);
+        });
+
+        $dispatcher->listen(UserLoggedOut::class, function (UserLoggedOut $event): void {
+            logger()->info('swift-auth.user.logged-out', [
+                'user_id' => $event->userId,
+                'session_id' => $event->sessionId,
+                'ip' => $event->ipAddress,
+                'driver' => $event->driverMetadata,
+            ]);
+        });
+
+        $dispatcher->listen(SessionEvicted::class, function (SessionEvicted $event): void {
+            logger()->info('swift-auth.session.evicted', [
+                'user_id' => $event->userId,
+                'session_id' => $event->sessionId,
+                'ip' => $event->ipAddress,
+                'driver' => $event->driverMetadata,
+            ]);
+        });
+
+        $dispatcher->listen(MfaChallengeStarted::class, function (MfaChallengeStarted $event): void {
+            logger()->info('swift-auth.mfa.challenge-started', [
+                'user_id' => $event->userId,
+                'session_id' => $event->sessionId,
+                'ip' => $event->ipAddress,
+                'driver' => $event->driverMetadata,
+            ]);
+        });
+    }
+}

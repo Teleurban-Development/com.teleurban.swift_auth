@@ -42,8 +42,8 @@ class UserTokenService
         $plainToken = bin2hex(random_bytes(32));
         $hashedToken = hash('sha256', $plainToken);
 
-    // Normalize empty abilities to wildcard
-    $normalizedAbilities = empty($abilities) ? ['*'] : $abilities;
+        // Normalize empty abilities to wildcard
+        $normalizedAbilities = empty($abilities) ? ['*'] : $abilities;
 
         $tokenModel = UserToken::create([
             'id_user' => $user->id_user,

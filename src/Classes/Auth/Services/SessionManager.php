@@ -84,7 +84,7 @@ class SessionManager
             }
 
             // Exclude current session from eviction candidates if possible
-            $candidates = $sessions->reject(fn ($s) => $s->session_id === $currentSessionId);
+            $candidates = $sessions->reject(fn($s) => $s->session_id === $currentSessionId);
 
             // If we still have too many, we must evict something
             $excessCount = $sessions->count() - $maxSessions;
@@ -122,7 +122,7 @@ class SessionManager
         $ttl = (int) config('swift-auth.performance.session_cache_ttl', 10);
 
         if ($ttl <= 0) {
-             return $this->checkDb($sessionId);
+            return $this->checkDb($sessionId);
         }
 
         $key = "swift_auth:session_valid:{$sessionId}";
@@ -131,12 +131,13 @@ class SessionManager
         // Assuming app has cache configured.
         $cached = Cache::get($key);
         if ($cached !== null) {
-            // Cache hit, but verify expiration hasn't occurred since cache was set
-            if ($cached instanceof \DateTime || is_string($cached)) {
-                // For backward compatibility, just check DB to ensure session still exists
-                return $this->checkDb($sessionId);
+            // Cache hit: always revalidate positive cache entries against DB to avoid stale sessions.
+            $cachedBool = (bool) $cached;
+            if (!$cachedBool) {
+                return false;
             }
-            return (bool) $cached;
+
+            return $this->checkDb($sessionId);
         }
 
         // Cache miss, check DB and cache result
@@ -149,12 +150,12 @@ class SessionManager
     {
         try {
             return UserSession::query()
-               ->where('session_id', $sessionId)
-               ->exists();
+                ->where('session_id', $sessionId)
+                ->exists();
         } catch (QueryException $exception) {
             logger()->warning('swift-auth.session.validation_failed', [
-               'session_id' => $sessionId,
-               'error' => $exception->getMessage(),
+                'session_id' => $sessionId,
+                'error' => $exception->getMessage(),
             ]);
             return false;
         }
@@ -163,16 +164,16 @@ class SessionManager
     public function touch(string $sessionId): void
     {
         try {
-             UserSession::query()
+            UserSession::query()
                 ->where('session_id', $sessionId)
                 ->update([
                     'last_activity' => CarbonImmutable::now(),
                 ]);
-          } catch (QueryException $exception) {
-             logger()->warning('swift-auth.session.touch_failed', [
+        } catch (QueryException $exception) {
+            logger()->warning('swift-auth.session.touch_failed', [
                 'session_id' => $sessionId,
                 'error' => $exception->getMessage(),
-             ]);
+            ]);
         }
     }
 
@@ -194,7 +195,7 @@ class SessionManager
             ->get(['session_id']);
 
         foreach ($sessions as $session) {
-             Cache::forget("swift_auth:session_valid:{$session->session_id}");
+            Cache::forget("swift_auth:session_valid:{$session->session_id}");
         }
 
         return UserSession::query()
@@ -204,9 +205,9 @@ class SessionManager
 
     public function deleteById(string $sessionId): void
     {
-         Cache::forget("swift_auth:session_valid:{$sessionId}");
+        Cache::forget("swift_auth:session_valid:{$sessionId}");
 
-         UserSession::query()
+        UserSession::query()
             ->where('session_id', $sessionId)
             ->delete();
     }

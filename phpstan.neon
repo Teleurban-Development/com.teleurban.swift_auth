@@ -13,6 +13,10 @@ parameters:
     scanDirectories:
         - vendor
 
+    # Local stubs for framework APIs when package-level analysis misses methods
+    stubFiles:
+        - stubs/IlluminateHttpRequest.stub
+
     # Universal object crates - helps with magic methods
     universalObjectCratesClasses:
         - Illuminate\Database\Eloquent\Model
@@ -28,6 +32,11 @@ parameters:
         - '#Call to static method .+ on an unknown class Equidna\\SwiftAuth\\Facades\\SwiftAuth#'
         # WebAuthn facade is from external package
         - '#Call to static method .+ on an unknown class Laragear\\WebAuthn\\Facades\\WebAuthn#'
+        # Package-level analysis may miss framework request helper methods resolved at runtime.
+        - '#Call to an undefined method Illuminate\\Http\\Request::(ip|userAgent|header|session|input|get|query|route|validate|boolean|filled|all|user|getHost|setUserResolver|isSecure)\(\)#'
+        - '#Call to an undefined method Equidna\\SwiftAuth\\Http\\Requests\\.+::(validated|ip|userAgent|header|session|input|get|query|route|validate|boolean|filled|all|user|getHost|setUserResolver|isSecure)\(\)#'
+        - '#Call to an undefined method Illuminate\\Routing\\Router::aliasMiddleware\(\)#'
+        - '#Call to an undefined method Laragear\\WebAuthn\\Http\\Requests\\AssertedRequest::(user|filled|input)\(\)#'
 
     # Type aliases for facades
     typeAliases:

@@ -1,0 +1,40 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Illuminate\Http;
+
+/**
+ * PHPStan compatibility stub for projects where Illuminate\Http\Request
+ * reflection is incomplete in package-level analysis.
+ */
+class Request
+{
+    public function ip(): ?string
+    {
+    }
+
+    public function userAgent(): ?string
+    {
+    }
+
+    public function header(string $key, mixed $default = null): mixed
+    {
+    }
+
+    public function input(?string $key = null, mixed $default = null): mixed
+    {
+    }
+
+    public function get(string $key, mixed $default = null): mixed
+    {
+    }
+
+    public function boolean(?string $key = null, bool $default = false): bool
+    {
+    }
+
+    public function session(): mixed
+    {
+    }
+}

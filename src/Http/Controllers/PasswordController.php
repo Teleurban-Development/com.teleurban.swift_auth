@@ -13,6 +13,7 @@
 
 namespace Equidna\SwiftAuth\Http\Controllers;
 
+use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +22,6 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
-use Inertia\Response;
 use Equidna\SwiftAuth\Models\PasswordResetToken;
 use Equidna\SwiftAuth\Models\User;
 use Equidna\SwiftAuth\Classes\Notifications\NotificationService;
@@ -47,9 +47,9 @@ class PasswordController extends Controller
      * Shows the password reset request form.
      *
      * @param  Request        $request  HTTP request context.
-     * @return View|Response            Blade or Inertia response.
+     * @return View|Responsable         Blade or Inertia response.
      */
-    public function showRequestForm(Request $request): View|Response
+    public function showRequestForm(Request $request): View|Responsable
     {
         return $this->render(
             'swift-auth::password.email',
@@ -87,22 +87,8 @@ class PasswordController extends Controller
         // Additional soft limit per-IP to curtail mass scanning.
         $ipKey = 'password-reset:ip:' . $request->ip();
 
-        // If too many attempts for this email, return a 429 with retry information
-            // SECURITY: Email-specific rate limiting is checked silently below to prevent
-            // email enumeration attacks. We do NOT return 429 for per-email limits, only IP-level.
-            // See: https://github.com/EquidnaMX/swift_auth/issues/XXX
-            // try {
-            //     $this->checkRateLimit(
-            //         $limiterKey,
-            //         $attempts,
-            //         'Too many password reset attempts.'
-            //     );
-            // } catch (UnauthorizedException $e) {
-            //     $availableIn = $this->rateLimitAvailableIn($limiterKey);
-            //     return response()->json([
-            //         'message' => $e->getMessage() . ' seconds.'
-            //     ], 429);
-            // }
+        // SECURITY: email-specific limit is intentionally silent to prevent enumeration.
+        $emailLimitExceeded = RateLimiter::tooManyAttempts($limiterKey, $attempts);
 
         // IP-level protection: high threshold to reduce noise but stop large scans
         $ipThreshold = max(50, $attempts * 10);
@@ -120,12 +106,11 @@ class PasswordController extends Controller
         }
 
         // Count attempt early to prevent enumeration races
-        $this->hitRateLimit($limiterKey, $decay);
         $this->hitRateLimit($ipKey, $decay);
 
-        // Generate raw token and hash for storage
-        // Check email limit silently to prevent status code enumeration
-        $emailLimitExceeded = RateLimiter::tooManyAttempts($limiterKey, $attempts);
+        if (!$emailLimitExceeded) {
+            $this->hitRateLimit($limiterKey, $decay);
+        }
 
         // Generate raw token and hash for storage
         $rawToken = Str::random(64);
@@ -180,12 +165,12 @@ class PasswordController extends Controller
      *
      * @param  Request       $request  HTTP request context.
      * @param  string        $token    Reset token value.
-     * @return View|Response           Blade or Inertia response.
+     * @return View|Responsable        Blade or Inertia response.
      */
     public function showResetForm(
         Request $request,
         string $token,
-    ): View|Response {
+    ): View|Responsable {
         return $this->render(
             'swift-auth::password.reset',
             'SwiftAuth/Password/Reset',
@@ -200,9 +185,9 @@ class PasswordController extends Controller
      * Shows the confirmation page after emailing reset instructions.
      *
      * @param  Request       $request  HTTP request context.
-     * @return View|Response           Blade or Inertia response.
+     * @return View|Responsable        Blade or Inertia response.
      */
-    public function showRequestSent(Request $request): View|Response
+    public function showRequestSent(Request $request): View|Responsable
     {
         return $this->render(
             'swift-auth::password.request_sent',
