@@ -29,13 +29,14 @@ class ChecksRateLimitsTest extends TestCase
     {
         parent::setUp();
 
-        // Mock RateLimiter facade
+        // Build a minimal container for RateLimiter facade resolution.
         $app = new \Illuminate\Container\Container();
-        $app->singleton('cache', function () {
-            return new \Illuminate\Cache\Repository(
-                new \Illuminate\Cache\ArrayStore()
-            );
-        });
+        $repository = new \Illuminate\Cache\Repository(new \Illuminate\Cache\ArrayStore());
+        $rateLimiter = new \Illuminate\Cache\RateLimiter($repository);
+
+        $app->instance('cache', $repository);
+        $app->instance(\Illuminate\Contracts\Cache\Repository::class, $repository);
+        $app->instance('cache.rate.limiter', $rateLimiter);
 
         Facade::setFacadeApplication($app);
     }

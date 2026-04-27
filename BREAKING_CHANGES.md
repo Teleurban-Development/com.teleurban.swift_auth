@@ -1,5 +1,212 @@
 # Breaking Changes & Migration Guide
 
+## v4.0.0 - "Archipelago"
+
+Version 4.0 introduces **multi-tenancy** as a first-class feature via `equidna/bee-hive`, a new Toolkit layer with typed exceptions and `ResponseHelper`, and significant refactoring of core auth services. These changes are breaking for any application that:
+
+- Queries `User` or `Role` without a tenant context.
+- Catches exceptions from SwiftAuth by generic type.
+- Parses raw SwiftAuth JSON responses.
+- Has active sessions from v3.x that relied on the old session key structure.
+
+---
+
+### 1. New Required Dependency: `equidna/bee-hive` ⚠️ CRITICAL
+
+SwiftAuth v4.0.0 **requires `equidna/bee-hive ^2.0`** for multi-tenancy support.
+
+#### What Changed
+
+- `composer.json` now lists `equidna/bee-hive ^2.0` as a required dependency.
+- `BeeHiveServiceProvider` is registered automatically by `SwiftAuthServiceProvider`.
+- `User` and `Role` models now use `Equidna\BeeHive\Traits\BelongsToTenant`.
+- A global `TenantScope` is applied to all `User` and `Role` Eloquent queries.
+
+#### Migration Steps
+
+**Step 1: Update the package**
+
+```bash
+composer require equidna/swift-auth:^4.0
+```
+
+`equidna/bee-hive` will be pulled automatically.
+
+**Step 2: Publish BeeHive configuration**
+
+```bash
+php artisan vendor:publish --tag=bee-hive:config
+```
+
+Or let `swift-auth:install` handle it (it now publishes BeeHive config automatically).
+
+**Step 3: Run the new migration**
+
+```bash
+php artisan vendor:publish --tag=swift-auth:migrations --force
+php artisan migrate
+```
+
+This adds `id_tenant` (default `'global'`) to `{prefix}Users` and `{prefix}Roles`.
+
+---
+
+### 2. Tenant-Scoped Queries on User and Role ⚠️ CRITICAL
+
+`User` and `Role` models now carry a global `TenantScope` applied by BeeHive. **All queries are automatically filtered by the current tenant.**
+
+#### What Changed
+
+```php
+// v3.x — returns ALL users across all tenants
+User::all();
+
+// v4.0 — returns only users belonging to the current tenant
+User::all(); // WHERE id_tenant = 'current_tenant'
+```
+
+#### When This Affects You
+
+- Admin commands that iterate all users (e.g. seeder, report jobs).
+- Tests that create users without setting a tenant context.
+- Cross-tenant analytics or admin tooling.
+
+#### Migration Steps
+
+**Option A — Disable multi-tenancy (single-tenant apps)**
+
+In `config/swift-auth.php`:
+
+```php
+'multi_tenancy' => [
+    'enabled' => false,
+    // ...
+],
+```
+
+When disabled, the tenant resolver always returns `'global'` and the global scope still applies but all records share the `'global'` tenant — effectively no isolation.
+
+**Option B — Remove scope for specific queries**
+
+```php
+use Equidna\BeeHive\Scopes\TenantScope;
+
+// Query all users regardless of tenant
+User::withoutGlobalScope(TenantScope::class)->get();
+```
+
+**Option C — Set tenant context before queries**
+
+```php
+use Equidna\BeeHive\TenantContext;
+
+TenantContext::set('my-tenant-id');
+User::all(); // Scoped to 'my-tenant-id'
+```
+
+---
+
+### 3. New Required Migration ⚠️ REQUIRED
+
+A new migration must be run before the application can boot with v4.0.
+
+#### What Changed
+
+`2026_04_26_000001_add_tenant_columns_to_swift_auth_tables.php` adds:
+
+- `id_tenant` column (default `'global'`, not nullable) to `{prefix}Users`.
+- `id_tenant` column (default `'global'`, not nullable) to `{prefix}Roles`.
+- Indexes on `id_tenant` for both tables.
+
+#### Migration Steps
+
+```bash
+php artisan vendor:publish --tag=swift-auth:migrations --force
+php artisan migrate
+```
+
+**Data backfill:** All existing rows receive `id_tenant = 'global'` automatically via the column default.
+
+---
+
+### 4. Session Structure Change
+
+`SwiftSessionAuth` now stores an additional key in the PHP session during login.
+
+#### What Changed
+
+| Key                    | v3.x       | v4.0                               |
+| ---------------------- | ---------- | ---------------------------------- |
+| `swift_auth_tenant_id` | Not stored | Stored on login, cleared on logout |
+
+#### Impact
+
+Active sessions from v3.x that are carried over to v4.0 will not have `swift_auth_tenant_id`. On the next request, `SwiftAuthTenantResolver` will fall back to:
+
+1. `X-Tenant-Id` header
+2. `tenant_id` query parameter
+3. User's `id_tenant` field
+4. Config fallback (`'global'`)
+
+**No data loss.** Sessions remain valid; tenant resolution degrades gracefully to the fallback chain.
+
+---
+
+### 5. Typed Exceptions from `Equidna\Toolkit\Exceptions\*`
+
+SwiftAuth now throws **typed exceptions** instead of generic ones.
+
+#### What Changed
+
+| Situation          | v3.x                     | v4.0                                         |
+| ------------------ | ------------------------ | -------------------------------------------- |
+| Invalid input      | `\Exception` / 400       | `BadRequestException` (extends `\Exception`) |
+| Resource not found | `ModelNotFoundException` | `NotFoundException` (extends `\Exception`)   |
+| Not authenticated  | Redirect / 401           | `UnauthorizedException`                      |
+| Not authorised     | Redirect / 403           | `ForbiddenException`                         |
+
+#### Migration Steps
+
+Update any `try/catch` blocks that catch exceptions thrown by SwiftAuth services:
+
+```php
+use Equidna\Toolkit\Exceptions\NotFoundException;
+use Equidna\Toolkit\Exceptions\ForbiddenException;
+use Equidna\Toolkit\Exceptions\UnauthorizedException;
+use Equidna\Toolkit\Exceptions\BadRequestException;
+
+try {
+    SwiftAuth::userOrFail();
+} catch (NotFoundException $e) {
+    // handle not found
+} catch (UnauthorizedException $e) {
+    // handle unauthenticated
+}
+```
+
+---
+
+### 6. Normalised JSON Response Shape
+
+Controllers now use `ResponseHelper` which standardises the JSON envelope.
+
+#### What Changed
+
+```json
+// v3.x — ad-hoc shapes varied by controller
+{ "message": "Login successful", "user": { ... } }
+
+// v4.0 — consistent ResponseHelper envelope
+{ "status": "success", "data": { ... }, "message": "..." }
+{ "status": "error",   "message": "...", "errors": { ... } }
+```
+
+#### Migration Steps
+
+Audit any frontend or API client code that parses SwiftAuth controller JSON responses and update field access to match the new envelope.
+
+---
+
 ## v3.0.0 - "Sovereign"
 
 Version 3.0 introduces **major breaking changes** by removing the `laravel/sanctum` dependency and replacing it with a native `UserToken` system. This release also adds comprehensive localization support and improves security for admin user creation.
@@ -10,10 +217,10 @@ SwiftAuth v3.0.0 **completely removes** `laravel/sanctum` and replaces it with a
 
 #### What Changed
 
--   `composer.json` no longer lists `laravel/sanctum` as a dependency
--   Sanctum migrations are no longer published during `swift-auth:install`
--   New `UserToken` model, service, and migration replace Sanctum's `personal_access_tokens`
--   New middleware: `SwiftAuth.AuthenticateWithToken` and `SwiftAuth.CheckTokenAbilities`
+- `composer.json` no longer lists `laravel/sanctum` as a dependency
+- Sanctum migrations are no longer published during `swift-auth:install`
+- New `UserToken` model, service, and migration replace Sanctum's `personal_access_tokens`
+- New middleware: `SwiftAuth.AuthenticateWithToken` and `SwiftAuth.CheckTokenAbilities`
 
 #### Why This Change
 
@@ -157,9 +364,9 @@ php artisan swift-auth:create-admin "Admin" admin@example.com
 
 #### Migration Actions
 
--   Remove `SWIFT_ADMIN_NAME` and `SWIFT_ADMIN_EMAIL` from `.env` files
--   Update deployment scripts to use interactive prompts or expect auto-generated passwords
--   Document generated passwords securely when using auto-generation
+- Remove `SWIFT_ADMIN_NAME` and `SWIFT_ADMIN_EMAIL` from `.env` files
+- Update deployment scripts to use interactive prompts or expect auto-generated passwords
+- Document generated passwords securely when using auto-generation
 
 ### 3. Installation Command Changes
 
@@ -169,14 +376,14 @@ The `swift-auth:install` command now publishes translation files automatically.
 
 **Before (v2.x):**
 
--   Did not publish translation files
--   Published Sanctum migrations separately
+- Did not publish translation files
+- Published Sanctum migrations separately
 
 **After (v3.0):**
 
--   Automatically publishes `swift-auth:lang` translations (10 files)
--   No longer publishes Sanctum migrations
--   Groups all SwiftAuth migrations before running `migrate`
+- Automatically publishes `swift-auth:lang` translations (10 files)
+- No longer publishes Sanctum migrations
+- Groups all SwiftAuth migrations before running `migrate`
 
 #### Migration Actions
 
@@ -190,12 +397,12 @@ Email verification routes have been consolidated into the main route file.
 
 **Before (v2.x):**
 
--   Separate `routes/swift-auth-email-verification.php` file
+- Separate `routes/swift-auth-email-verification.php` file
 
 **After (v3.0):**
 
--   All routes in `routes/swift-auth.php`
--   Email verification routes: `POST /email/send`, `GET /email/verify/{token}`
+- All routes in `routes/swift-auth.php`
+- Email verification routes: `POST /email/send`, `GET /email/verify/{token}`
 
 #### Migration Actions
 
@@ -216,10 +423,10 @@ None required if using default package routes. Check for conflicts if you've cus
 
 ### 6. Documentation Resources
 
--   **Route Security:** `doc/securing-routes.md` - Comprehensive guide with examples
--   **Localization:** `doc/localization.md` - Translation system guide
--   **API Docs:** `doc/api-documentation.md` - Updated with UserToken endpoints
--   **README:** Updated with security quick reference
+- **Route Security:** `doc/securing-routes.md` - Comprehensive guide with examples
+- **Localization:** `doc/localization.md` - Translation system guide
+- **API Docs:** `doc/api-documentation.md` - Updated with UserToken endpoints
+- **README:** Updated with security quick reference
 
 ---
 
@@ -247,7 +454,7 @@ Search and replace namespace imports in your application code if you have extend
 
 We have enforced native PHP return types and parameter types across the codebase to reduce reliance on PHPDoc.
 
--   **Before:**
+- **Before:**
 
     ```php
     /**
@@ -256,7 +463,7 @@ We have enforced native PHP return types and parameter types across the codebase
     public function getToken() { ... }
     ```
 
--   **After:**
+- **After:**
     ```php
     public function getToken(): string { ... }
     ```
@@ -269,14 +476,14 @@ If you have **extended** any SwiftAuth classes and overridden methods, you **mus
 
 Many DTOs and Services now use Constructor Property Promotion.
 
--   **Impact:** If you were using reflection or relying on specific internal property existence before the constructor ran, behavior might slightly differ, though public API surfaces remain largely compatible.
+- **Impact:** If you were using reflection or relying on specific internal property existence before the constructor ran, behavior might slightly differ, though public API surfaces remain largely compatible.
 
 ### 4. Event Constructors
 
 Auth events (`UserLoggedIn`, `SessionEvicted`, etc.) now enforce strict types in their constructors.
 
--   `userId` is strictly `int|string|null`.
--   `driverMetadata` is strictly `array`.
+- `userId` is strictly `int|string|null`.
+- `driverMetadata` is strictly `array`.
 
 #### Migration Action:
 

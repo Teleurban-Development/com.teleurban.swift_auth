@@ -14,6 +14,7 @@
 namespace Equidna\SwiftAuth\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Hashing\Hasher;
 use Illuminate\Support\Facades\Hash;
 use Equidna\SwiftAuth\Models\Role;
 use Equidna\SwiftAuth\Models\User;
@@ -98,7 +99,7 @@ class CreateAdminUser extends Command
         $driver = config('swift-auth.hash_driver');
         $driver = is_string($driver) ? $driver : null;
         if ($driver) {
-            /** @var \Illuminate\Contracts\Hashing\Hasher $hasher */
+            /** @var Hasher $hasher */
             $hasher = Hash::driver($driver);
             $hashed = $hasher->make($textPassword);
         } else {

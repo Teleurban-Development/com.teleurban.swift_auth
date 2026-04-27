@@ -1,305 +1,256 @@
 # Deployment Instructions
 
-This guide covers the installation, configuration, and deployment requirements for the **SwiftAuth** package.
+> This document covers installing, configuring, and deploying the `equidna/swift-auth` package into a Laravel 11 or 12 application.
 
-## System Requirements
+---
 
--   **PHP:** 8.2 or higher.
--   **Extensions:** `json`, `pdo`, `openssl`, `mbstring`.
--   **Laravel Framework:** 11.x or 12.x.
--   **Database:** MySQL 8.0+, PostgreSQL 13+, or SQLite.
--   **Dependencies:**
-    -   `equidna/bird-flock` (for email/notifications).
-    -   `laragear/webauthn` (for Passkeys).
+## Prerequisites
+
+| Requirement  | Version                                              |
+| ------------ | ---------------------------------------------------- |
+| PHP          | ^8.2, ^8.3, ^8.4                                     |
+| Laravel      | 11.x / 12.x                                          |
+| Composer     | 2.x                                                  |
+| Database     | MySQL 8+, PostgreSQL 14+, or SQLite (tests)          |
+| Cache driver | Any Laravel-supported driver (database, redis, etc.) |
+
+**Required package dependencies** (resolved automatically by Composer):
+
+- `equidna/bee-hive ^2.0`
+- `equidna/bird-flock ^1.2`
+- `equidna/toolkit` (latest)
+- `laragear/webauthn ^5.0`
+- `laravel/sanctum ^4.3`
+- `inertiajs/inertia-laravel ^3.0`
+
+---
 
 ## Installation
 
-### 1. Require via Composer
-
-Can be installed via Composer (assuming configured repositories):
+### Step 1 — Require the package
 
 ```bash
 composer require equidna/swift-auth
 ```
 
-### 2. Install Assets & Config
+The service provider (`Equidna\SwiftAuth\Providers\SwiftAuthServiceProvider`) is auto-discovered via the `extra.laravel.providers` key in `composer.json`.
 
-Run the guided installer command:
+### Step 2 — Run the installer
 
 ```bash
 php artisan swift-auth:install
 ```
 
-Or publish manually:
+The `swift-auth:install` command will:
 
-```bash
-# Config
-php artisan vendor:publish --tag=swift-auth:config
+1. Interactively prompt for key configuration options.
+2. Publish the config file to `config/swift-auth.php`.
+3. Optionally publish migrations, views, language files, and frontend assets.
+4. Run `php artisan migrate` for you (optional confirmation prompt).
 
-# Migrations
-php artisan vendor:publish --tag=swift-auth:migrations
-
-# Assets (Views/Lang)
-php artisan vendor:publish --tag=swift-auth:views
-php artisan vendor:publish --tag=swift-auth:lang
-```
-
-### 3. Database Setup
-
-Run the migrations to create User, Role, Session, UserToken, and related tables:
+### Step 3 — Run migrations manually (if skipped above)
 
 ```bash
 php artisan migrate
 ```
 
-> **Note:** SwiftAuth uses its own tables (`swift-auth_Users`, etc.) by default, configured via `table_prefix`.
-
-## Configuration
-
-The main configuration file is `config/swift-auth.php`.
-
-### Key Environment Variables
-
-| Variable                        | Default       | Description                                              |
-| :------------------------------ | :------------ | :------------------------------------------------------- |
-| `SWIFT_AUTH_FRONTEND`           | `typescript`  | Frontend stack (`blade`, `typescript`, or `javascript`). |
-| `SWIFT_AUTH_ALLOW_REGISTRATION` | `false`       | Enable public user registration.                         |
-| `SWIFT_AUTH_ROUTE_PREFIX`       | `swift-auth`  | URL prefix for all package routes.                       |
-| `SWIFT_AUTH_TABLE_PREFIX`       | `swift-auth_` | Database table prefix.                                   |
-| `SWIFT_AUTH_MFA_ENABLED`        | `false`       | Enable Multi-Factor Authentication.                      |
-| `SWIFT_AUTH_LOCKOUT_ENABLED`    | `true`        | Enable account lockout protection.                       |
-
-## Frontend Setup
-
-SwiftAuth supports three frontend stacks: **Blade**, **React + TypeScript**, and **React + JavaScript**.
-
-### Blade (Default for Simple Projects)
-
-When using Blade views, no additional setup is required. Views are served directly from the package:
+### Step 4 — Create the first admin user
 
 ```bash
-php artisan swift-auth:install
-# Select: Blade
+php artisan swift-auth:create-admin
 ```
 
-Set in `.env`:
+---
 
-```
-SWIFT_AUTH_FRONTEND=blade
-```
+## Environment Variables
 
-### React + TypeScript (Recommended)
+All SwiftAuth configuration can be driven from `.env`. Below is a full reference with defaults.
 
-For modern React applications with TypeScript and Inertia.js:
+### Core
 
-#### 1. Install and Publish
+| Variable                        | Default       | Description                                           |
+| ------------------------------- | ------------- | ----------------------------------------------------- |
+| `SWIFT_AUTH_FRONTEND`           | `blade`       | Frontend adapter: `blade`, `typescript`, `javascript` |
+| `SWIFT_AUTH_ALLOW_REGISTRATION` | `false`       | Enable public self-registration endpoint              |
+| `SWIFT_AUTH_SUCCESS_URL`        | `/`           | Redirect URL after successful login                   |
+| `SWIFT_AUTH_ROUTE_PREFIX`       | `swift-auth`  | URL prefix for all package routes                     |
+| `SWIFT_AUTH_TABLE_PREFIX`       | `swift-auth_` | Database table prefix                                 |
+| `SWIFT_AUTH_DEFAULT_ROLE_ID`    | `null`        | Role ID assigned to new registered users              |
+
+### Session Lifetimes
+
+| Variable                               | Default | Description                            |
+| -------------------------------------- | ------- | -------------------------------------- |
+| `SWIFT_AUTH_SESSION_IDLE_LIFETIME`     | `900`   | Seconds before idle session expires    |
+| `SWIFT_AUTH_SESSION_ABSOLUTE_LIFETIME` | `28800` | Seconds before absolute session expiry |
+
+### Session Limits
+
+| Variable                      | Default  | Description                                          |
+| ----------------------------- | -------- | ---------------------------------------------------- |
+| `SWIFT_AUTH_MAX_SESSIONS`     | `5`      | Maximum concurrent sessions per user (0 = unlimited) |
+| `SWIFT_AUTH_SESSION_EVICTION` | `oldest` | Eviction strategy: `oldest` or `newest`              |
+
+### Rate Limiting
+
+| Variable                          | Default | Description                        |
+| --------------------------------- | ------- | ---------------------------------- |
+| `SWIFT_AUTH_LOGIN_EMAIL_ATTEMPTS` | `3`     | Max login attempts per email       |
+| `SWIFT_AUTH_LOGIN_EMAIL_DECAY`    | `300`   | Lockout window (seconds) per email |
+| `SWIFT_AUTH_LOGIN_IP_ATTEMPTS`    | `10`    | Max login attempts per IP          |
+| `SWIFT_AUTH_LOGIN_IP_DECAY`       | `300`   | Lockout window (seconds) per IP    |
+
+### Account Lockout
+
+| Variable                          | Default | Description                                  |
+| --------------------------------- | ------- | -------------------------------------------- |
+| `SWIFT_AUTH_LOCKOUT_ENABLED`      | `true`  | Enable account lockout after failed attempts |
+| `SWIFT_AUTH_LOCKOUT_MAX_ATTEMPTS` | `5`     | Failed attempts before lockout               |
+| `SWIFT_AUTH_LOCKOUT_DURATION`     | `900`   | Lockout duration in seconds                  |
+
+### Password Reset
+
+| Variable                        | Default | Description                        |
+| ------------------------------- | ------- | ---------------------------------- |
+| `SWIFT_AUTH_PASSWORD_RESET_TTL` | `3600`  | Token validity in seconds (1 hour) |
+
+### Remember Me
+
+| Variable                        | Default   | Description                         |
+| ------------------------------- | --------- | ----------------------------------- |
+| `SWIFT_AUTH_REMEMBER_ME`        | `true`    | Enable remember-me functionality    |
+| `SWIFT_AUTH_REMEMBER_TOKEN_TTL` | `2592000` | Token lifetime in seconds (30 days) |
+
+### MFA
+
+| Variable                 | Default | Description                      |
+| ------------------------ | ------- | -------------------------------- |
+| `SWIFT_AUTH_MFA_ENABLED` | `false` | Enable MFA challenge after login |
+| `SWIFT_AUTH_MFA_DRIVER`  | `otp`   | MFA driver: `otp` or `webauthn`  |
+
+### Multi-Tenancy
+
+| Variable                           | Default  | Description                                       |
+| ---------------------------------- | -------- | ------------------------------------------------- |
+| `SWIFT_AUTH_MULTI_TENANCY_ENABLED` | `false`  | Enable tenant isolation                           |
+| `SWIFT_AUTH_FALLBACK_TENANT_ID`    | `global` | Tenant ID used when no tenant context is resolved |
+
+### Email Verification
+
+| Variable                        | Default | Description                            |
+| ------------------------------- | ------- | -------------------------------------- |
+| `SWIFT_AUTH_EMAIL_VERIFICATION` | `false` | Require email verification on register |
+
+### Session Cleanup (Scheduler)
+
+| Variable                               | Default | Description                                 |
+| -------------------------------------- | ------- | ------------------------------------------- |
+| `SWIFT_AUTH_SESSION_CLEANUP_FREQUENCY` | `daily` | Scheduler frequency for stale session purge |
+
+---
+
+## Publishing Assets
+
+Run `php artisan vendor:publish --tag=<tag>` for each group you need:
+
+| Tag                     | Contents                                            |
+| ----------------------- | --------------------------------------------------- |
+| `swift-auth:config`     | `config/swift-auth.php`                             |
+| `swift-auth:migrations` | All database migration files                        |
+| `swift-auth:views`      | Blade views to `resources/views/vendor/swift-auth/` |
+| `swift-auth:lang`       | Language files to `lang/vendor/swift-auth/`         |
+| `swift-auth:models`     | Eloquent model stubs to `app/Models/`               |
+| `swift-auth:ts-react`   | TypeScript/React pages to `resources/`              |
+| `swift-auth:js-react`   | JavaScript/React pages to `resources/`              |
+| `swift-auth:icons`      | Icon assets to `resources/`                         |
+
+---
+
+## Database Migrations
+
+SwiftAuth ships 7 migration files. The table prefix for all tables is controlled by `config('swift-auth.table_prefix')` (default: `swift-auth_`).
+
+| File                                          | Table(s) Created                           |
+| --------------------------------------------- | ------------------------------------------ |
+| `create_users_table.php`                      | `{prefix}Users`                            |
+| `create_roles_table.php`                      | `{prefix}Roles`                            |
+| `create_sessions_table.php`                   | `{prefix}Sessions`                         |
+| `create_remember_tokens_table.php`            | `{prefix}RememberTokens`                   |
+| `create_password_reset_tokens_table.php`      | `{prefix}PasswordResetTokens`              |
+| `create_user_tokens_table.php`                | `{prefix}UserTokens`                       |
+| `add_tenant_columns_to_swift_auth_tables.php` | Adds `id_tenant` column to Users and Roles |
+
+The tenant migration should run after `create_users_table` and `create_roles_table`. All migrations read the configured prefix at migration time, so changing the prefix requires fresh migrations.
+
+---
+
+## Scheduler Setup
+
+SwiftAuth registers two scheduled tasks automatically. Ensure the Laravel scheduler is running:
 
 ```bash
-php artisan swift-auth:install
-# Select: React + TypeScript
-
-npm install
+# Add to crontab (Linux/macOS)
+* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-#### 2. Configure Vite
-
-Update your `vite.config.js` to include SwiftAuth components:
-
-```javascript
-import { defineConfig } from "vite";
-import laravel from "laravel-vite-plugin";
-import react from "@vitejs/plugin-react";
-
-export default defineConfig({
-    plugins: [
-        laravel({
-            input: [
-                "resources/js/app.jsx",
-                "resources/ts/swift-auth/pages/**/*.tsx",
-                "resources/ts/swift-auth/components/**/*.tsx",
-            ],
-            refresh: true,
-        }),
-        react(),
-    ],
-    resolve: {
-        alias: {
-            "@": "/resources/js",
-            "@swift-auth": "/resources/ts/swift-auth",
-        },
-    },
-});
-```
-
-#### 3. Configure Inertia
-
-Ensure your Inertia middleware resolves components correctly. Update `app/Http/Middleware/HandleInertiaRequests.php`:
-
-```php
-use Inertia\Middleware;
-
-class HandleInertiaRequests extends Middleware
-{
-    public function share(Request $request): array
-    {
-        return array_merge(parent::share($request), [
-            // Your shared data
-        ]);
-    }
-}
-```
-
-Create/update your app layout blade file (e.g., `resources/views/app.blade.php`):
-
-```blade
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-    @vite(['resources/js/app.jsx', 'resources/css/app.css'])
-    @inertiaHead
-  </head>
-  <body>
-    @inertia
-  </body>
-</html>
-```
-
-Configure Inertia root view in `config/inertia.php`:
-
-```php
-return [
-    'ssr' => [
-        'enabled' => false,
-    ],
-];
-```
-
-Update your main JavaScript entry point (`resources/js/app.jsx`) to resolve SwiftAuth components:
-
-```javascript
-import { createInertiaApp } from "@inertiajs/react";
-import { createRoot } from "react-dom/client";
-
-createInertiaApp({
-    resolve: (name) => {
-        const pages = import.meta.glob(
-            ["./Pages/**/*.jsx", "../ts/swift-auth/pages/**/*.tsx"],
-            { eager: true }
-        );
-
-        // Support SwiftAuth/ namespace with PascalCase directory structure
-        // e.g., SwiftAuth/User/Index -> ../ts/swift-auth/pages/User/Index.tsx
-        let pagePath = name.startsWith("SwiftAuth/")
-            ? `../ts/swift-auth/pages/${name.replace("SwiftAuth/", "")}.tsx`
-            : `./Pages/${name}.jsx`;
-
-        return pages[pagePath];
-    },
-    setup({ el, App, props }) {
-        createRoot(el).render(<App {...props} />);
-    },
-});
-```
-
-#### 4. Component Namespacing in Controllers
-
-SwiftAuth controllers use the `SwiftAuth/` namespace when rendering Inertia components via the `SelectiveRender` trait:
-
-```php
-// Inside a SwiftAuth controller
-use Equidna\SwiftAuth\Support\Traits\SelectiveRender;
-
-public function showUserIndex(Request $request): View|Response
-{
-    return $this->render(
-        'swift-auth::user.index',              // Blade view
-        'SwiftAuth/User/Index',                // Inertia component (PascalCase)
-    );
-}
-```
-
-The trait's `render()` method:
-
--   Renders Blade views for `blade` frontend
--   Renders namespaced Inertia components (PascalCase, e.g., `SwiftAuth/User/Index`) for `typescript`/`javascript` frontends
--   Automatically injects flash messages into view data
--   Automatically injects flash messages (success, error, status) into view data
-
-#### 5. Build Assets
-
-```bash
-npm run dev    # Development with hot reload
-npm run build  # Production build
-```
-
-Set in `.env`:
-
-```
-SWIFT_AUTH_FRONTEND=typescript
-```
-
-### React + JavaScript
-
-Similar to TypeScript setup, but use JavaScript paths:
-
-```javascript
-// vite.config.js
-input: [
-    'resources/js/app.jsx',
-    'resources/js/swift-auth/pages/**/*.jsx',
-    'resources/js/swift-auth/components/**/*.jsx',
-],
-
-// app.jsx resolver
-const pages = import.meta.glob([
-    './Pages/**/*.jsx',
-    './swift-auth/pages/**/*.jsx',
-], { eager: true })
-
-let pagePath = name.startsWith('SwiftAuth/')
-    ? `./swift-auth/pages/${name.replace('SwiftAuth/', '')}.jsx`
-    : `./Pages/${name}.jsx`
-```
-
-Set in `.env`:
-
-```
-SWIFT_AUTH_FRONTEND=javascript
-```
-
-> **Note:** SwiftAuth uses the `SwiftAuth/` namespace for Inertia components (e.g., `SwiftAuth/Login`) to avoid conflicts with your application's components.
-
-### Session Cleanup
-
-SwiftAuth includes a session garbage collector. Ensure your scheduler is running:
-
-```bash
-# In production crontab/scheduler
+```powershell
+# Windows Task Scheduler (every minute)
 php artisan schedule:run
 ```
 
-This ensures `swift-auth:purge-stale-sessions` and `swift-auth:purge-expired-tokens` run as configured (hourly/daily).
+| Task                 | Frequency                     | Command                           |
+| -------------------- | ----------------------------- | --------------------------------- |
+| Purge expired tokens | Hourly                        | `swift-auth:purge-expired-tokens` |
+| Purge stale sessions | Configurable (default: daily) | `swift-auth:purge-stale-sessions` |
 
-## Production Optimization
+The stale-session purge frequency is controlled by `config('swift-auth.session_cleanup.frequency')` (env: `SWIFT_AUTH_SESSION_CLEANUP_FREQUENCY`).
 
-When deploying to production:
+---
 
-1.  **Build Frontend Assets:**
-    ```bash
-    npm run build
-    ```
-2.  **Cache Configuration:**
-    ```bash
-    php artisan config:cache
-    ```
-3.  **Route Caching:**
-    ```bash
-    php artisan route:cache
-    ```
-    _SwiftAuth routes are compatible with route caching._
-4.  **Optimize Autoloader:**
-    ```bash
-    composer install --optimize-autoloader --no-dev
-    ```
+## Middleware Registration
+
+The following middleware aliases are registered automatically by the service provider:
+
+| Alias                             | Class                                   | Purpose                           |
+| --------------------------------- | --------------------------------------- | --------------------------------- |
+| `SwiftAuth.RequireAuthentication` | `Http\Middleware\RequireAuthentication` | Block unauthenticated requests    |
+| `SwiftAuth.CanPerformAction`      | `Http\Middleware\CanPerformAction`      | Action-based authorization        |
+| `SwiftAuth.SecurityHeaders`       | `Http\Middleware\SecurityHeaders`       | Inject security HTTP headers      |
+| `SwiftAuth.ShareInertiaData`      | `Http\Middleware\ShareInertiaData`      | Share auth state with Inertia     |
+| `SwiftAuth.AuthenticateWithToken` | `Http\Middleware\AuthenticateWithToken` | API token authentication          |
+| `SwiftAuth.CheckTokenAbilities`   | `Http\Middleware\CheckTokenAbilities`   | Token ability-based authorization |
+
+All package routes are automatically wrapped in `SwiftAuth.SecurityHeaders`.
+
+---
+
+## Multi-Tenancy Setup
+
+To enable tenant isolation:
+
+1.  Set `SWIFT_AUTH_MULTI_TENANCY_ENABLED=true`.
+2.  Configure a tenant resolver in `config/swift-auth.php` (defaults to `SwiftAuthTenantResolver`).
+3.  The default resolver reads the tenant ID from, in priority order:
+    - `X-Tenant-Id` HTTP header
+    - `tenant_id` query parameter
+    - Session key (`swift_auth_tenant_id`)
+    - Authenticated user's `id_tenant` field
+    - Fallback tenant ID (`config('swift-auth.multi_tenancy.fallback_tenant_id')`, default: `global`)
+
+All `User` and `Role` models automatically apply a global scope that filters records by `id_tenant`. The `BelongsToTenant` trait also auto-assigns `id_tenant` on model creation via the resolved `TenantContext`.
+
+---
+
+## Upgrading
+
+See [CHANGELOG.md](../CHANGELOG.md) and [BREAKING_CHANGES.md](../BREAKING_CHANGES.md) before upgrading.
+
+After pulling a new version:
+
+```bash
+composer update equidna/swift-auth
+php artisan migrate
+php artisan vendor:publish --tag=swift-auth:config --force
+```
+
+Review config diffs for any new keys and add them to `.env` as needed.

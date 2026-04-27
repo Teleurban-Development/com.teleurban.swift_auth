@@ -13,9 +13,12 @@
 
 namespace Equidna\SwiftAuth\Providers;
 
+use Equidna\BeeHive\BeeHiveServiceProvider;
+use Equidna\BeeHive\Tenancy\Resolvers\StaticTenantResolver;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Routing\Router;
+use Illuminate\Session\Store;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\ServiceProvider;
@@ -43,6 +46,7 @@ use Equidna\SwiftAuth\Http\Middleware\RequireAuthentication;
 use Equidna\SwiftAuth\Http\Middleware\SecurityHeaders;
 use Equidna\SwiftAuth\Http\Middleware\ShareInertiaData;
 use Equidna\SwiftAuth\Providers\RateLimitServiceProvider;
+use Equidna\SwiftAuth\Support\Tenancy\SwiftAuthTenantResolver;
 
 /**
  * Registers and bootstraps SwiftAuth components.
@@ -67,6 +71,12 @@ final class SwiftAuthServiceProvider extends ServiceProvider
             key: 'swift-auth',
         );
 
+        $this->configureBeeHive();
+
+        if (class_exists(BeeHiveServiceProvider::class)) {
+            $this->app->register(BeeHiveServiceProvider::class);
+        }
+
         $this->app->singleton(
             abstract: UserRepositoryInterface::class,
             concrete: EloquentUserRepository::class,
@@ -75,7 +85,7 @@ final class SwiftAuthServiceProvider extends ServiceProvider
         $this->app->singleton(
             abstract: 'swift-auth',
             concrete: function ($app) {
-                /** @var \Illuminate\Session\Store $sessionStore */
+                /** @var Store $sessionStore */
                 $sessionStore = $app['session.store'];
 
                 /** @var UserRepositoryInterface $userRepository */
@@ -123,7 +133,8 @@ final class SwiftAuthServiceProvider extends ServiceProvider
 
         // Restore locale from session
         $locale = Session::get('locale', config('app.locale', 'en'));
-        if (in_array($locale, ['en', 'es'], strict: true)) {
+        $supportedLocales = (array) config('swift-auth.supported_locales', ['en', 'es']);
+        if (in_array($locale, $supportedLocales, strict: true)) {
             App::setLocale($locale);
         }
 
@@ -285,6 +296,81 @@ final class SwiftAuthServiceProvider extends ServiceProvider
                 'supported' => ['bcrypt', 'argon', 'argon2id', 'null (default)'],
             ]);
         }
+
+        // Validate session lifetimes
+        $idleTimeout = (int) config('swift-auth.session_lifetimes.idle_timeout_seconds', 900);
+        $absoluteTimeout = (int) config('swift-auth.session_lifetimes.absolute_timeout_seconds', 28800);
+
+        if ($idleTimeout <= 0) {
+            logger()->warning('swift-auth.config.invalid-idle-timeout', [
+                'value' => $idleTimeout,
+                'minimum' => 300,
+                'default' => 900,
+            ]);
+        }
+
+        if ($absoluteTimeout > 0 && $idleTimeout > 0 && $idleTimeout >= $absoluteTimeout) {
+            logger()->warning('swift-auth.config.idle-timeout-exceeds-absolute', [
+                'idle_timeout' => $idleTimeout,
+                'absolute_timeout' => $absoluteTimeout,
+            ]);
+        }
+
+        // Validate rate limiting
+        $loginRateLimit = config('swift-auth.login_rate_limits', []);
+        $emailAttempts = (int) ($loginRateLimit['email']['attempts'] ?? 3);
+        $ipAttempts = (int) ($loginRateLimit['ip']['attempts'] ?? 10);
+
+        if ($emailAttempts < 1) {
+            logger()->warning('swift-auth.config.invalid-login-email-attempts', [
+                'value' => $emailAttempts,
+                'minimum' => 1,
+                'default' => 3,
+            ]);
+        }
+
+        if ($ipAttempts < 1) {
+            logger()->warning('swift-auth.config.invalid-login-ip-attempts', [
+                'value' => $ipAttempts,
+                'minimum' => 1,
+                'default' => 10,
+            ]);
+        }
+
+        // Validate MFA configuration
+        $mfaEnabled = config('swift-auth.mfa.enabled', false);
+        if ($mfaEnabled) {
+            $mfaDriver = config('swift-auth.mfa.driver', 'otp');
+            if (!in_array($mfaDriver, ['otp', 'webauthn'], true)) {
+                logger()->warning('swift-auth.config.invalid-mfa-driver', [
+                    'value' => $mfaDriver,
+                    'supported' => ['otp', 'webauthn'],
+                    'default' => 'otp',
+                ]);
+            }
+        }
+
+        // Validate remember-me configuration
+        $rememberEnabled = config('swift-auth.remember_me.enabled', true);
+        if ($rememberEnabled) {
+            $rememberTtl = (int) config('swift-auth.remember_me.ttl_seconds', 1209600);
+            if ($rememberTtl <= 0) {
+                logger()->warning('swift-auth.config.invalid-remember-ttl', [
+                    'value' => $rememberTtl,
+                    'minimum' => 3600,
+                    'default' => 1209600,
+                ]);
+            }
+
+            $policy = config('swift-auth.remember_me.policy', 'strict');
+            if (!in_array($policy, ['strict', 'lenient'], true)) {
+                logger()->warning('swift-auth.config.invalid-remember-policy', [
+                    'value' => $policy,
+                    'supported' => ['strict', 'lenient'],
+                    'default' => 'strict',
+                ]);
+            }
+        }
     }
 
     /**
@@ -334,5 +420,35 @@ final class SwiftAuthServiceProvider extends ServiceProvider
                 'driver' => $event->driverMetadata,
             ]);
         });
+    }
+
+    /**
+     * Aligns BeeHive configuration with SwiftAuth multitenancy settings.
+     */
+    private function configureBeeHive(): void
+    {
+        $enabled = (bool) config('swift-auth.multi_tenancy.enabled', false);
+        $tenantKey = (string) config('swift-auth.multi_tenancy.tenant_key', 'id_tenant');
+
+        config([
+            'bee-hive.tenant_key' => $tenantKey,
+        ]);
+
+        if ($enabled) {
+            config([
+                'bee-hive.resolver' => (string) config(
+                    'swift-auth.multi_tenancy.resolver',
+                    SwiftAuthTenantResolver::class,
+                ),
+                'bee-hive.static_tenant_id' => null,
+            ]);
+
+            return;
+        }
+
+        config([
+            'bee-hive.resolver' => StaticTenantResolver::class,
+            'bee-hive.static_tenant_id' => (string) config('swift-auth.multi_tenancy.fallback_tenant_id', 'global'),
+        ]);
     }
 }

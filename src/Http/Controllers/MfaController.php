@@ -14,6 +14,7 @@ namespace Equidna\SwiftAuth\Http\Controllers;
 
 use Equidna\SwiftAuth\Classes\Users\Contracts\UserRepositoryInterface;
 use Equidna\SwiftAuth\Facades\SwiftAuth;
+use Equidna\SwiftAuth\Classes\Auth\Services\MfaService;
 use Equidna\Toolkit\Helpers\ResponseHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -32,6 +33,7 @@ class MfaController extends Controller
     public function verifyOtp(
         Request $request,
         UserRepositoryInterface $userRepository,
+        MfaService $mfaService,
     ): JsonResponse|RedirectResponse {
         $otp = $request->input('otp');
 
@@ -42,6 +44,7 @@ class MfaController extends Controller
         return $this->finalizeMfa(
             $request,
             $userRepository,
+            $mfaService,
             'otp',
             ['otp' => $otp],
         );
@@ -53,6 +56,7 @@ class MfaController extends Controller
     public function verifyWebAuthn(
         Request $request,
         UserRepositoryInterface $userRepository,
+        MfaService $mfaService,
     ): JsonResponse|RedirectResponse {
         $credential = $request->input('credential');
 
@@ -63,6 +67,7 @@ class MfaController extends Controller
         return $this->finalizeMfa(
             $request,
             $userRepository,
+            $mfaService,
             'webauthn',
             ['credential' => $credential],
         );
@@ -80,14 +85,25 @@ class MfaController extends Controller
     protected function finalizeMfa(
         Request $request,
         UserRepositoryInterface $userRepository,
+        MfaService $mfaService,
         string $method,
         array $payload,
     ): JsonResponse|RedirectResponse {
-        $pendingUserId = $request->session()->get($this->pendingUserSessionKey());
-        $pendingMethod = $request->session()->get($this->pendingMethodSessionKey());
+        $pendingUserId = $mfaService->getPendingUserId();
+        $pendingMethod = $mfaService->getPendingDriver();
 
         if (!$pendingUserId || ($pendingMethod && $pendingMethod !== $method)) {
             return ResponseHelper::unauthorized(message: 'No pending MFA challenge.');
+        }
+
+        if (!$mfaService->isPendingChallengeValid()) {
+            $mfaService->clearPendingChallenge();
+            logger()->warning('swift-auth.mfa.challenge-expired', [
+                'user_id' => $pendingUserId,
+                'method' => $method,
+            ]);
+
+            return ResponseHelper::unauthorized(message: 'MFA challenge expired. Please log in again.');
         }
 
         $pendingUserIdInt = is_int($pendingUserId) ? $pendingUserId : (int) $pendingUserId;
@@ -110,7 +126,7 @@ class MfaController extends Controller
 
         $driver = is_string($config['driver'] ?? null) ? $config['driver'] : $method;
 
-        $verificationResponse = Http::asJson()->post(
+        $verificationResponse = Http::asJson()->timeout(5)->connectTimeout(2)->post(
             $verificationUrl,
             array_merge(
                 $payload,
@@ -129,12 +145,9 @@ class MfaController extends Controller
             return ResponseHelper::unauthorized(message: 'Invalid MFA verification.');
         }
 
+        $mfaService->clearPendingChallenge();
         SwiftAuth::login($user);
         $request->session()->regenerate();
-        $request->session()->forget([
-            $this->pendingUserSessionKey(),
-            $this->pendingMethodSessionKey(),
-        ]);
 
         $successUrl = config('swift-auth.success_url');
         $forwardUrl = is_string($successUrl) ? $successUrl : null;
@@ -146,21 +159,5 @@ class MfaController extends Controller
             ],
             forward_url: $forwardUrl,
         );
-    }
-
-    /**
-     * Returns the session key that stores the pending user ID for MFA.
-     */
-    protected function pendingUserSessionKey(): string
-    {
-        return (string) config('swift-auth.mfa.pending_user_session_key', 'swift_auth_pending_user_id');
-    }
-
-    /**
-     * Returns the session key that stores the pending MFA method.
-     */
-    protected function pendingMethodSessionKey(): string
-    {
-        return (string) config('swift-auth.mfa.pending_method_session_key', 'swift_auth_pending_mfa_method');
     }
 }

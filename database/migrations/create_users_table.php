@@ -22,6 +22,7 @@ return new class extends Migration {
 
         Schema::create($prefix . 'Users', function (Blueprint $table) {
             $table->id('id_user');
+            $table->string('id_tenant')->default('global');
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
@@ -35,6 +36,7 @@ return new class extends Migration {
             $table->timestamps();
 
             // Performance indexes
+            $table->index('id_tenant');
             $table->index('name');
             $table->index('email_verification_token');
         });

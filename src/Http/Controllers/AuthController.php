@@ -13,6 +13,8 @@
 
 namespace Equidna\SwiftAuth\Http\Controllers;
 
+use Illuminate\Contracts\Hashing\Hasher;
+use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +23,6 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
-use Inertia\Response;
 use Equidna\SwiftAuth\Classes\Auth\Services\AccountLockoutService;
 use Equidna\SwiftAuth\Classes\Auth\Traits\ChecksRateLimits;
 use Equidna\SwiftAuth\Classes\Users\Contracts\UserRepositoryInterface;
@@ -45,9 +46,9 @@ class AuthController extends Controller
      * Shows the login form view.
      *
      * @param  Request        $request  HTTP request with context info.
-     * @return View|Response            Blade or Inertia response.
+     * @return View|Responsable         Blade or Inertia response.
      */
-    public function showLoginForm(Request $request): View|Response
+    public function showLoginForm(Request $request): View|Responsable
     {
         return $this->render(
             'swift-auth::login',
@@ -114,24 +115,11 @@ class AuthController extends Controller
             'ip' => $request->ip(),
         ]);
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        /** @var JsonResponse|RedirectResponse|string $response */
-        $response = ResponseHelper::success(
+        return ResponseHelper::success(
             message: 'Logged out successfully.',
             data: null,
             forward_url: route('swift-auth.login.form'),
         );
-
-        if (is_string($response)) {
-            $response = response()->json([
-                'message' => __('swift-auth::auth.logout_success'),
-                'forward_url' => route('swift-auth.login.form'),
-            ]);
-        }
-        /** @var JsonResponse|RedirectResponse $response */
-        return $response;
     }
 
     /**
@@ -229,7 +217,7 @@ class AuthController extends Controller
         $driver = config('swift-auth.hash_driver');
         $driver = is_string($driver) ? $driver : null;
         if ($driver) {
-            /** @var \Illuminate\Contracts\Hashing\Hasher $hasher */
+            /** @var Hasher $hasher */
             $hasher = Hash::driver($driver);
             $valid = $hasher->check($credentials['password'], $passwordToCheck);
         } else {
@@ -263,8 +251,6 @@ class AuthController extends Controller
     ): never {
         // Record failed attempt and trigger lockout if threshold reached
         if ($user) {
-            $lockoutService->refreshAttemptsAfterInactivity($user);
-
             $ip = (string) ($request->ip() ?? '');
             $wasLocked = $lockoutService->recordFailedAttempt($user, $ip);
 
@@ -356,14 +342,16 @@ class AuthController extends Controller
             user: $user,
             ipAddress: $request->ip(),
             userAgent: $request->userAgent(),
-            deviceName: (string) $request->header('X-Device-Name', ''),
+            deviceName: (function () use ($request): string {
+                $h = $request->header('X-Device-Name', '');
+                return is_string($h) ? $h : '';
+            })(),
             remember: $remember,
         );
 
         $evictedSessionIds = (array) ($loginResult['evicted_session_ids'] ?? []);
         $evictionPolicy = config('swift-auth.session_limits.eviction', null);
 
-        /** @var JsonResponse|RedirectResponse|string $response */
         $response = ResponseHelper::success(
             message: 'Login successful.',
             data: [
@@ -373,21 +361,10 @@ class AuthController extends Controller
             forward_url: Config::get('swift-auth.success_url'),
         );
 
-        // Normalize potential non-response return into JsonResponse
-        if (is_string($response)) {
-            $response = response()->json([
-                'message' => __('swift-auth::auth.login_success'),
-                'user_id' => $user->getKey(),
-                'forward_url' => Config::get('swift-auth.success_url'),
-                'evicted_session_ids' => $loginResult['evicted_session_ids'] ?? [],
-            ]);
-        }
-
         if (!empty($evictedSessionIds)) {
             $response = $this->attachEvictionData($response, $evictedSessionIds, $evictionPolicy);
         }
 
-        /** @var JsonResponse|RedirectResponse $response */
         return $response;
     }
 
@@ -462,10 +439,12 @@ class AuthController extends Controller
 
     private function getEvictionMessage(?string $policy): ?string
     {
-        return match ($policy) {
+        $message = match ($policy) {
             'newest' => __('swift-auth::session.evicted_newest'),
             'oldest' => __('swift-auth::session.evicted_oldest'),
             default => null,
         };
+
+        return is_string($message) ? $message : null;
     }
 }

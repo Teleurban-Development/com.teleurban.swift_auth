@@ -16,6 +16,7 @@ use Equidna\SwiftAuth\Classes\Auth\Services\SessionManager;
 use Equidna\SwiftAuth\Classes\Users\Contracts\UserRepositoryInterface;
 use Equidna\SwiftAuth\Models\User;
 use Equidna\SwiftAuth\Models\UserSession;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Session\Store as Session;
@@ -34,6 +35,7 @@ class SwiftSessionAuth
     protected string $absoluteExpiryKey = 'swift_auth_absolute_expires_at';
     protected string $pendingMfaUserKey = 'swift_auth_pending_mfa_user_id';
     protected string $pendingMfaDriverKey = 'swift_auth_pending_mfa_driver';
+    protected string $tenantSessionKey = 'swift_auth_tenant_id';
     protected string $rememberCookieName = 'swift_auth_remember';
 
     private ?User $cachedUser = null;
@@ -46,6 +48,7 @@ class SwiftSessionAuth
         protected SessionManager $sessionManager,
         protected MfaService $mfaService,
     ) {
+        $this->tenantSessionKey = (string) config('swift-auth.multi_tenancy.session_key', 'swift_auth_tenant_id');
     }
 
     /**
@@ -60,11 +63,34 @@ class SwiftSessionAuth
         ?string $deviceName = null,
         bool $remember = false,
     ): array {
-        $this->session->regenerate(true);
+        $metadata = $this->extractAgentMetadata($userAgent);
+        $now = CarbonImmutable::now();
 
+        $sessionId = $this->initializeLoginSession($user, $now);
+
+        $evicted = $this->recordAndEnforceSessionLimits(
+            user: $user,
+            sessionId: $sessionId,
+            ipAddress: $ipAddress,
+            userAgent: $userAgent,
+            deviceName: $deviceName,
+            metadata: $metadata,
+            now: $now,
+        );
+
+        $this->queueRememberTokenIfRequested($remember, $user, $ipAddress, $userAgent, $deviceName, $metadata);
+        $this->dispatchLoginEvent($user, $sessionId, $ipAddress);
+
+        return [
+            'evicted_session_ids' => $evicted,
+        ];
+    }
+
+    private function initializeLoginSession(User $user, CarbonImmutable $now): string
+    {
+        $this->session->regenerate(true);
         $this->cachedUser = $user;
 
-        $now = CarbonImmutable::now();
         $sessionId = $this->session->getId();
         $absoluteExpiry = $this->getAbsoluteExpiry($now);
 
@@ -74,12 +100,30 @@ class SwiftSessionAuth
         $this->session->put($this->sessionKey, $user->getKey());
         $this->session->put($this->sessionUidKey, $sessionId);
         $this->session->put($this->createdAtKey, $now->toIso8601String());
+        if (isset($user->id_tenant) && is_scalar($user->id_tenant)) {
+            $this->session->put($this->tenantSessionKey, (string) $user->id_tenant);
+        }
+
         if ($absoluteExpiry !== null) {
             $this->session->put($this->absoluteExpiryKey, $absoluteExpiry->toIso8601String());
         }
 
-        $metadata = $this->extractAgentMetadata($userAgent);
+        return $sessionId;
+    }
 
+    /**
+     * @param  array{platform:null|string,browser:null|string} $metadata
+     * @return array<int, string>
+     */
+    private function recordAndEnforceSessionLimits(
+        User $user,
+        string $sessionId,
+        ?string $ipAddress,
+        ?string $userAgent,
+        ?string $deviceName,
+        array $metadata,
+        CarbonImmutable $now,
+    ): array {
         $this->sessionManager->record(
             user: $user,
             sessionId: $sessionId,
@@ -91,32 +135,45 @@ class SwiftSessionAuth
             lastActivity: $now,
         );
 
-        $evicted = $this->sessionManager->enforceLimits(
+        return $this->sessionManager->enforceLimits(
             user: $user,
             currentSessionId: $sessionId,
         );
+    }
 
-        if ($remember) {
-            $this->rememberMeService->queueToken(
-                user: $user,
-                ipAddress: $ipAddress,
-                userAgent: $userAgent,
-                deviceName: $deviceName,
-                platform: $metadata['platform'],
-                browser: $metadata['browser'],
-            );
+    /**
+     * @param array{platform:null|string,browser:null|string} $metadata
+     */
+    private function queueRememberTokenIfRequested(
+        bool $remember,
+        User $user,
+        ?string $ipAddress,
+        ?string $userAgent,
+        ?string $deviceName,
+        array $metadata,
+    ): void {
+        if (!$remember) {
+            return;
         }
 
+        $this->rememberMeService->queueToken(
+            user: $user,
+            ipAddress: $ipAddress,
+            userAgent: $userAgent,
+            deviceName: $deviceName,
+            platform: $metadata['platform'],
+            browser: $metadata['browser'],
+        );
+    }
+
+    private function dispatchLoginEvent(User $user, string $sessionId, ?string $ipAddress): void
+    {
         $this->dispatchEvent(new UserLoggedIn(
             $user->getKey(),
             $sessionId,
             $ipAddress,
             $this->getDriverMetadata()
         ));
-
-        return [
-            'evicted_session_ids' => $evicted,
-        ];
     }
 
     /**
@@ -135,6 +192,7 @@ class SwiftSessionAuth
         $this->session->forget($this->createdAtKey);
         $this->session->forget($this->lastActivityKey);
         $this->session->forget($this->absoluteExpiryKey);
+        $this->session->forget($this->tenantSessionKey);
         $this->mfaService->clearPendingChallenge();
 
         if ($sessionId !== '') {
@@ -217,12 +275,17 @@ class SwiftSessionAuth
     /**
      * Determines if a user is currently authenticated via session.
      */
-    /**
-     * Determines if a user is currently authenticated via session.
-     */
     public function check(): bool
     {
-        $this->cachedUser = null;
+        if ($this->cachedUser !== null) {
+            $now = CarbonImmutable::now();
+            $this->session->put($this->lastActivityKey, $now->toIso8601String());
+            $sessionId = (string) $this->session->get($this->sessionUidKey);
+            if ($sessionId !== '') {
+                $this->sessionManager->touch($sessionId);
+            }
+            return true;
+        }
 
         $id = $this->id();
 
@@ -320,13 +383,16 @@ class SwiftSessionAuth
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, UserSession>
+     * @return Collection<int, UserSession>
      */
-    public function allSessions(): \Illuminate\Database\Eloquent\Collection
+    public function allSessions(): Collection
     {
-        return UserSession::query()
+        /** @var Collection<int, UserSession> $result */
+        $result = UserSession::query()
             ->orderByDesc('last_activity')
             ->get();
+
+        return $result;
     }
 
     public function revokeSession(int $userId, string $sessionId): void
@@ -444,10 +510,16 @@ class SwiftSessionAuth
         try {
             $request = request();
 
-            return method_exists($request, 'header')
-                ? (string) $request->header('X-Device-Name', '')
-                : null;
-        } catch (\Throwable) {
+            if (!method_exists($request, 'header')) {
+                return null;
+            }
+
+            $h = $request->header('X-Device-Name', '');
+            return is_string($h) ? ($h ?: null) : null;
+        } catch (\Throwable $e) {
+            logger()->debug('swift-auth.session.device-name-resolution-failed', [
+                'error' => $e->getMessage(),
+            ]);
             return null;
         }
     }
@@ -524,7 +596,11 @@ class SwiftSessionAuth
 
         try {
             return CarbonImmutable::parse($timestamp);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            logger()->debug('swift-auth.session.timestamp-parse-failed', [
+                'timestamp' => $timestamp,
+                'error' => $e->getMessage(),
+            ]);
             return null;
         }
     }
@@ -533,7 +609,11 @@ class SwiftSessionAuth
     {
         try {
             return config($key, $default);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            logger()->error('swift-auth.session.config-access-failed', [
+                'key' => $key,
+                'error' => $e->getMessage(),
+            ]);
             return $default;
         }
     }

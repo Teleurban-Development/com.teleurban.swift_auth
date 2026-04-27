@@ -13,6 +13,7 @@
 
 namespace Equidna\SwiftAuth\Models;
 
+use Equidna\BeeHive\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -23,8 +24,6 @@ use Laravel\Sanctum\HasApiTokens;
 /**
  * Represents an authenticated SwiftAuth user record.
  *
- * @property int $id_user
- * @property string $name
  * @property string $email
  * @property string $password
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \Equidna\SwiftAuth\Models\Role> $roles
@@ -39,6 +38,7 @@ use Laravel\Sanctum\HasApiTokens;
  */
 class User extends Authenticatable implements WebAuthnAuthenticatable
 {
+    use BelongsToTenant;
     use WebAuthnAuthentication;
     use HasApiTokens;
 
@@ -75,8 +75,8 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
     /**
      * @var array<int, string>
      */
-    protected $with = ['roles'];
     protected $fillable = [
+        'id_tenant',
         'name',
         'email',
         'password',
@@ -132,6 +132,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
             ->isNotEmpty();
     }
 
+    /** @param string|array<int, string> $roles */
     public function hasRole(string|array $roles): bool
     {
         return $this->hasRoles($roles);

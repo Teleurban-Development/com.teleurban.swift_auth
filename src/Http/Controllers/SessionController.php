@@ -15,6 +15,7 @@ namespace Equidna\SwiftAuth\Http\Controllers;
 
 use Illuminate\Routing\Controller;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Equidna\SwiftAuth\Facades\SwiftAuth;
 use Equidna\Toolkit\Helpers\ResponseHelper;
@@ -25,17 +26,15 @@ use Equidna\SwiftAuth\Classes\Auth\SwiftSessionAuth;
  */
 class SessionController extends Controller
 {
-    public function __construct(private SwiftSessionAuth $sessionAuth)
-    {
-    }
+    public function __construct(private SwiftSessionAuth $sessionAuth) {}
 
     /**
      * Lists all sessions for the authenticated user.
      *
      * @param  Request $request  HTTP request context.
-     * @return JsonResponse
+     * @return JsonResponse|RedirectResponse
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse|RedirectResponse
     {
         $userId = SwiftAuth::id();
 
@@ -54,17 +53,19 @@ class SessionController extends Controller
      *
      * @param  Request $request      HTTP request context.
      * @param  string  $sessionId    Identifier of the session to revoke.
-     * @return JsonResponse
+     * @return JsonResponse|RedirectResponse
      */
     public function destroy(
         Request $request,
         string $sessionId,
-    ): JsonResponse {
+    ): JsonResponse|RedirectResponse {
         $userId = SwiftAuth::id();
 
-        if ($userId) {
-            $this->sessionAuth->revokeSession($userId, $sessionId);
+        if (!$userId) {
+            return ResponseHelper::unauthorized(message: 'Unauthenticated.');
         }
+
+        $this->sessionAuth->revokeSession($userId, $sessionId);
 
         return ResponseHelper::success(
             message: 'Session revoked.',

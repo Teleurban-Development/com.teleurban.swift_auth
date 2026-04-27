@@ -15,6 +15,7 @@ namespace Equidna\SwiftAuth\Http\Controllers;
 
 use Illuminate\Routing\Controller;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Equidna\SwiftAuth\Facades\SwiftAuth;
 use Equidna\Toolkit\Helpers\ResponseHelper;
@@ -25,17 +26,15 @@ use Equidna\SwiftAuth\Classes\Auth\SwiftSessionAuth;
  */
 class AdminSessionController extends Controller
 {
-    public function __construct(private SwiftSessionAuth $sessionAuth)
-    {
-    }
+    public function __construct(private SwiftSessionAuth $sessionAuth) {}
 
     /**
      * Lists all sessions across all users.
      *
      * @param  Request $request  HTTP request context.
-     * @return JsonResponse
+     * @return JsonResponse|RedirectResponse
      */
-    public function all(Request $request): JsonResponse
+    public function all(Request $request): JsonResponse|RedirectResponse
     {
         return ResponseHelper::success(
             message: 'All sessions loaded.',
@@ -50,12 +49,12 @@ class AdminSessionController extends Controller
      *
      * @param  Request $request  HTTP request context.
      * @param  int     $userId   Identifier of the user to inspect.
-     * @return JsonResponse
+     * @return JsonResponse|RedirectResponse
      */
     public function index(
         Request $request,
         int $userId,
-    ): JsonResponse {
+    ): JsonResponse|RedirectResponse {
         $sessions = $this->sessionAuth->sessionsForUser($userId);
 
         return ResponseHelper::success(
@@ -73,13 +72,13 @@ class AdminSessionController extends Controller
      * @param  Request $request     HTTP request context.
      * @param  int     $userId      Identifier of the user who owns the session.
      * @param  string  $sessionId   Identifier of the session to revoke.
-     * @return JsonResponse
+     * @return JsonResponse|RedirectResponse
      */
     public function destroy(
         Request $request,
         int $userId,
         string $sessionId,
-    ): JsonResponse {
+    ): JsonResponse|RedirectResponse {
         $this->sessionAuth->revokeSession($userId, $sessionId);
 
         return ResponseHelper::success(
@@ -97,9 +96,9 @@ class AdminSessionController extends Controller
      *
      * @param  Request $request  HTTP request context.
      * @param  int     $userId   Identifier of the user whose sessions are revoked.
-     * @return JsonResponse
+     * @return JsonResponse|RedirectResponse
      */
-    public function destroyAll(Request $request, int $userId): JsonResponse
+    public function destroyAll(Request $request, int $userId): JsonResponse|RedirectResponse
     {
         $includeRememberTokens = $request->boolean('include_remember_tokens', false);
 

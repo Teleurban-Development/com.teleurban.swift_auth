@@ -31,7 +31,7 @@ Route::middleware(['web', 'SwiftAuth.SecurityHeaders'])
 
             Route::get('login', [AuthController::class, 'showLoginForm'])->name('login.form');
             Route::post('login', [AuthController::class, 'login'])->name('login');
-            Route::match(['get', 'post'], 'logout', [AuthController::class, 'logout'])->name('logout');
+            Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
             // Password reset routes
             Route::prefix('password')->as('password.')
@@ -89,7 +89,7 @@ Route::middleware(['web', 'SwiftAuth.SecurityHeaders'])
                 );
 
             // Public registration routes (optional)
-            if (config('swift-auth.allow_registration', true)) {
+            if (config('swift-auth.allow_registration', false)) {
                 Route::get('users/register', [UserController::class, 'register'])
                     ->name('public.register');
 

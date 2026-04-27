@@ -13,10 +13,10 @@
 
 namespace Equidna\SwiftAuth\Support\Traits;
 
+use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Config;
 use Inertia\Inertia;
-use Inertia\Response;
 
 /**
  * Provides selective rendering for Blade or Inertia frontends.
@@ -37,13 +37,13 @@ trait SelectiveRender
      * @param  string              $bladeView         Blade view name to render (if frontend is Blade).
      * @param  string              $inertiaComponent  Full Inertia component name (e.g., 'SwiftAuth/Login').
      * @param  array<string,mixed> $data              Additional data to pass to the view or component.
-     * @return View|Response                          Rendered Blade view or Inertia component.
+     * @return View|Responsable                      Rendered Blade view or Inertia component.
      */
     protected function render(
         string $bladeView,
         string $inertiaComponent,
         array $data = [],
-    ): View|Response {
+    ): View|Responsable {
         $flashMessages = [
             'success' => session('success'),
             'error' => session('error'),

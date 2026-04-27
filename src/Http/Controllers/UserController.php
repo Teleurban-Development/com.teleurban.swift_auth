@@ -21,11 +21,13 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
-use Inertia\Response;
+use Illuminate\Contracts\Hashing\Hasher;
+use Illuminate\Contracts\Support\Responsable;
 use Equidna\SwiftAuth\Facades\SwiftAuth;
 use Equidna\SwiftAuth\Http\Requests\RegisterUserRequest;
 use Equidna\SwiftAuth\Http\Requests\UpdateUserRequest;
 use Equidna\SwiftAuth\Models\Role;
+use Equidna\BeeHive\Tenancy\TenantContext;
 use Equidna\SwiftAuth\Models\User;
 use Equidna\SwiftAuth\Support\Traits\SelectiveRender;
 use Equidna\Toolkit\Exceptions\BadRequestException;
@@ -45,9 +47,9 @@ class UserController extends Controller
      * Displays the paginated user list optionally filtered by search term.
      *
      * @param  Request       $request  HTTP request containing the optional search filter.
-     * @return View|Response           Blade or Inertia response with pagination data.
+     * @return View|Responsable           Blade or Inertia response with pagination data.
      */
-    public function index(Request $request): View|Response
+    public function index(Request $request): View|Responsable
     {
         $searchRaw = $request->get('search', null);
         $search = is_string($searchRaw) ? $searchRaw : null;
@@ -70,12 +72,12 @@ class UserController extends Controller
      * Shows the registration form for creating a new user.
      *
      * @param  Request       $request  HTTP request context.
-     * @return View|Response           Blade or Inertia response with role list.
+     * @return View|Responsable           Blade or Inertia response with role list.
      */
-    public function register(Request $request): View|Response
+    public function register(Request $request): View|Responsable
     {
         $roles = Cache::remember(
-            'swift-auth.roles',
+            $this->rolesCacheKey(),
             300,
             fn() => Role::orderBy('name')->get()
         );
@@ -93,12 +95,12 @@ class UserController extends Controller
      * Shows the admin create user form.
      *
      * @param  Request       $request  HTTP request context.
-     * @return View|Response           Blade or Inertia response with role list.
+     * @return View|Responsable           Blade or Inertia response with role list.
      */
-    public function create(Request $request): View|Response
+    public function create(Request $request): View|Responsable
     {
         $roles = Cache::remember(
-            'swift-auth.roles',
+            $this->rolesCacheKey(),
             300,
             fn() => Role::orderBy('name')->get()
         );
@@ -118,7 +120,7 @@ class UserController extends Controller
      * @param  RegisterUserRequest       $request  Validated registration payload.
      * @return RedirectResponse|JsonResponse       Context-aware created response.
      */
-    public function store(RegisterUserRequest $request): RedirectResponse|JsonResponse|string
+    public function store(RegisterUserRequest $request): RedirectResponse|JsonResponse
     {
         /** @var array{name:string,email:string,password:string,role?:int|string} $payload */
         $payload = $request->validated();
@@ -138,7 +140,7 @@ class UserController extends Controller
         $driverRaw = config('swift-auth.hash_driver');
         $driver = is_string($driverRaw) ? $driverRaw : null;
         if ($driver) {
-            /** @var \Illuminate\Contracts\Hashing\Hasher $hasher */
+            /** @var Hasher $hasher */
             $hasher = Hash::driver($driver);
             $hashed = $hasher->make($payload['password']);
         } else {
@@ -200,15 +202,15 @@ class UserController extends Controller
      *
      * @param  Request       $request  HTTP request context.
      * @param  string        $id_user  Identifier of the user to show.
-     * @return View|Response           Blade or Inertia response with user data.
+     * @return View|Responsable           Blade or Inertia response with user data.
      */
     public function show(
         Request $request,
         string $id_user,
-    ): View|Response {
+    ): View|Responsable {
         $user = User::findOrFail($id_user);
         $roles = Cache::remember(
-            'swift-auth.roles',
+            $this->rolesCacheKey(),
             300,
             fn() => Role::orderBy('name')->get()
         );
@@ -280,15 +282,15 @@ class UserController extends Controller
      *
      * @param  Request       $request  HTTP request context.
      * @param  string        $id_user  Identifier of the user to edit.
-     * @return View|Response           Blade or Inertia response with user and role data.
+     * @return View|Responsable           Blade or Inertia response with user and role data.
      */
     public function edit(
         Request $request,
         string $id_user,
-    ): View|Response {
+    ): View|Responsable {
         $user = User::findOrFail($id_user);
         $roles = Cache::remember(
-            'swift-auth.roles',
+            $this->rolesCacheKey(),
             300,
             fn() => Role::orderBy('name')->get()
         );
@@ -338,5 +340,20 @@ class UserController extends Controller
             ],
             forward_url: route('swift-auth.users.index'),
         );
+    }
+
+    /**
+     * Returns a cache key for roles, scoped to the current tenant when multi-tenancy is enabled.
+     */
+    private function rolesCacheKey(): string
+    {
+        if (config('swift-auth.multi_tenancy.enabled', false)) {
+            /** @var TenantContext $context */
+            $context  = app(TenantContext::class);
+            $tenantId = $context->get() ?? '0';
+            return 'swift-auth.roles.' . $tenantId;
+        }
+
+        return 'swift-auth.roles';
     }
 }

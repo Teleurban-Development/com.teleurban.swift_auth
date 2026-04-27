@@ -19,6 +19,7 @@ use Equidna\SwiftAuth\Models\RememberToken;
 use Equidna\SwiftAuth\Models\User;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Str;
+use Illuminate\Database\QueryException;
 
 /**
  * Manages "Remember Me" tokens and their persistence.
@@ -57,7 +58,7 @@ class RememberMeService
             $token = RememberToken::query()
                 ->where('selector', $selector)
                 ->first();
-        } catch (\Throwable $exception) {
+        } catch (QueryException $exception) {
             logger()->warning('swift-auth.remember.load_failed', [
                 'selector' => $selector,
                 'error' => $exception->getMessage(),
@@ -165,7 +166,7 @@ class RememberMeService
             );
 
             Cookie::queue($cookie);
-        } catch (\Throwable $exception) {
+        } catch (QueryException $exception) {
             logger()->warning('swift-auth.remember.issue_failed', [
                 'user_id' => $user->getKey(),
                 'error' => $exception->getMessage(),
@@ -186,7 +187,7 @@ class RememberMeService
             RememberToken::query()
                 ->where('selector', $selector)
                 ->delete();
-        } catch (\Throwable $exception) {
+        } catch (QueryException $exception) {
             logger()->warning('swift-auth.remember.delete_failed', [
                 'selector' => $selector,
                 'error' => $exception->getMessage(),

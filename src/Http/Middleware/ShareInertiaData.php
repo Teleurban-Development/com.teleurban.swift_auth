@@ -55,7 +55,7 @@ final class ShareInertiaData
     /**
      * Loads all translation files for the given locale.
      *
-     * @param non-empty-string $locale Current locale code (e.g., 'en', 'es').
+     * @param string $locale Current locale code (e.g., 'en', 'es').
      * @return array<string, string> Flattened translation keys and values.
      */
     private function loadTranslations(string $locale): array

@@ -22,9 +22,10 @@ final class RegisterUserRequest extends EquidnaFormRequest
 {
     public function authorize(): bool
     {
-        return config('swift-auth.allow_registration', true);
+        return config('swift-auth.allow_registration', false);
     }
 
+    /** @return array<string, array<int, mixed>|string> */
     public function rules(): array
     {
         $prefix = config('swift-auth.table_prefix', '');

@@ -45,10 +45,12 @@ class NotificationService
                 absolute: true,
             );
 
+            /** @var string $subject */
+            $subject = __('swift-auth::email.reset_subject');
             $flight = new FlightPlan(
                 channel: 'email',
                 to: $email,
-                subject: __('swift-auth::email.reset_subject'),
+                subject: $subject,
                 html: $this->getPasswordResetHtml($resetUrl, $email),
                 text: $this->getPasswordResetText($resetUrl),
                 idempotencyKey: "swift-auth:password-reset:{$email}:{$token}",
@@ -61,9 +63,9 @@ class NotificationService
             logger()->error(
                 'swift-auth.notification.password-reset-failed',
                 [
-                    'email' => $email,
+                    'email_hash' => hash('sha256', $email),
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
+                    'exception_class' => get_class($e),
                 ],
             );
 
@@ -94,10 +96,12 @@ class NotificationService
                 absolute: true,
             );
 
+            /** @var string $subject */
+            $subject = __('swift-auth::email.verification_subject');
             $flight = new FlightPlan(
                 channel: 'email',
                 to: $email,
-                subject: __('swift-auth::email.verification_subject'),
+                subject: $subject,
                 html: $this->getEmailVerificationHtml($verifyUrl, $email),
                 text: $this->getEmailVerificationText($verifyUrl),
                 idempotencyKey: "swift-auth:email-verification:{$email}:{$token}",
@@ -110,9 +114,9 @@ class NotificationService
             logger()->error(
                 'swift-auth.notification.email-verification-failed',
                 [
-                    'email' => $email,
+                    'email_hash' => hash('sha256', $email),
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
+                    'exception_class' => get_class($e),
                 ],
             );
 
@@ -134,10 +138,12 @@ class NotificationService
         try {
             $minutes = (int) ceil($duration / 60);
 
+            /** @var string $subject */
+            $subject = __('swift-auth::email.lockout_subject');
             $flight = new FlightPlan(
                 channel: 'email',
                 to: $email,
-                subject: __('swift-auth::email.lockout_subject'),
+                subject: $subject,
                 html: $this->getAccountLockoutHtml($email, $minutes),
                 text: $this->getAccountLockoutText($minutes),
                 idempotencyKey: "swift-auth:account-lockout:{$email}:" . now()->getTimestamp(),
@@ -150,9 +156,9 @@ class NotificationService
             logger()->error(
                 'swift-auth.notification.account-lockout-failed',
                 [
-                    'email' => $email,
+                    'email_hash' => hash('sha256', $email),
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
+                    'exception_class' => get_class($e),
                 ],
             );
 

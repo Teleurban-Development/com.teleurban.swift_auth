@@ -15,6 +15,7 @@ namespace Equidna\SwiftAuth\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Represents a user API token for stateless authentication.
@@ -32,6 +33,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property \Illuminate\Support\Carbon|null $created_at     Creation timestamp.
  * @property \Illuminate\Support\Carbon|null $updated_at     Update timestamp.
  * @property-read User                       $user           Owning user.
+ * @method static static create(array<string, mixed> $attributes = [])
  */
 class UserToken extends Model
 {
@@ -81,7 +83,7 @@ class UserToken extends Model
     /**
      * Returns the user that owns this token.
      *
-     * @return BelongsTo<User, UserToken>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -129,7 +131,7 @@ class UserToken extends Model
      */
     public function markAsUsed(): void
     {
-        $this->last_used_at = now();
+        $this->last_used_at = Carbon::now();
         $this->save();
     }
 }

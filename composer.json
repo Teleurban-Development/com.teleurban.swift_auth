@@ -19,24 +19,27 @@
     ],
     "require": {
         "php": "^8.2 || ^8.3 || ^8.4",
-        "equidna/bird-flock": "^1.0",
-        "equidna/laravel-toolkit": "^1.0",
-        "illuminate/support": "^11.21 || ^12.0",
-        "inertiajs/inertia-laravel": "^1.3 || ^2.0",
-        "laragear/webauthn": "^4.0",
-        "laravel/framework": "^11.21 || ^12.0",
-        "laravel/helpers": "^1.8"
+        "equidna/bee-hive": "^2.0",
+        "equidna/bird-flock": "^1.2",
+        "illuminate/http": "*",
+        "illuminate/routing": "*",
+        "illuminate/support": "*",
+        "inertiajs/inertia-laravel": "^3.0",
+        "laragear/webauthn": "^5.0",
+        "laravel/helpers": "*",
+        "laravel/sanctum": "^4.3"
     },
     "require-dev": {
         "larastan/larastan": "^3.0",
-        "orchestra/testbench": "^9.0",
+        "orchestra/testbench": "^10.0",
         "phpunit/phpunit": "^11.5",
         "squizlabs/php_codesniffer": "^4.0",
         "stevebauman/autodoc-facades": "^1.0"
     },
     "autoload": {
         "psr-4": {
-            "Equidna\\SwiftAuth\\": "src/"
+            "Equidna\\SwiftAuth\\": "src/",
+            "Equidna\\Toolkit\\": "src/Toolkit/"
         }
     },
     "autoload-dev": {
