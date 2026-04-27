@@ -95,14 +95,14 @@ use Equidna\Toolkit\Exceptions\UnauthorizedException;
 
 ## Breaking Changes Summary
 
-| # | Change | Impact |
-|---|--------|--------|
-| 1 | New required dependency `equidna/bee-hive` | `composer require equidna/swift-auth:^4.0` |
-| 2 | `User`/`Role` queries now tenant-scoped globally | Review cross-tenant queries; use `withoutGlobalScope` |
-| 3 | New migration required (`id_tenant` columns) | Run `php artisan migrate` |
-| 4 | Session adds `swift_auth_tenant_id` key | Active v3.x sessions degrade gracefully |
-| 5 | Typed exceptions from `Equidna\Toolkit\Exceptions\*` | Update `catch` blocks |
-| 6 | Normalised JSON response envelope via `ResponseHelper` | Update API clients |
+| #   | Change                                                 | Impact                                                |
+| --- | ------------------------------------------------------ | ----------------------------------------------------- |
+| 1   | New required dependency `equidna/bee-hive`             | `composer require equidna/swift-auth:^4.0`            |
+| 2   | `User`/`Role` queries now tenant-scoped globally       | Review cross-tenant queries; use `withoutGlobalScope` |
+| 3   | New migration required (`id_tenant` columns)           | Run `php artisan migrate`                             |
+| 4   | Session adds `swift_auth_tenant_id` key                | Active v3.x sessions degrade gracefully               |
+| 5   | Typed exceptions from `Equidna\Toolkit\Exceptions\*`   | Update `catch` blocks                                 |
+| 6   | Normalised JSON response envelope via `ResponseHelper` | Update API clients                                    |
 
 For full migration instructions see [BREAKING_CHANGES.md](BREAKING_CHANGES.md).
 
@@ -154,11 +154,11 @@ SwiftAuth now includes a **fully integrated API token system** that respects you
 
 **Key Features:**
 
--   ✅ **UserToken Model** with SHA-256 hashing (consistent with RememberToken/PasswordResetToken)
--   ✅ **Fine-grained Abilities/Scopes** for precise permission control
--   ✅ **Token Expiration & Usage Tracking** (`expires_at`, `last_used_at`)
--   ✅ **Dedicated Middleware** (`SwiftAuth.AuthenticateWithToken`, `SwiftAuth.CheckTokenAbilities`)
--   ✅ **Table Prefix Support** out of the box
+- ✅ **UserToken Model** with SHA-256 hashing (consistent with RememberToken/PasswordResetToken)
+- ✅ **Fine-grained Abilities/Scopes** for precise permission control
+- ✅ **Token Expiration & Usage Tracking** (`expires_at`, `last_used_at`)
+- ✅ **Dedicated Middleware** (`SwiftAuth.AuthenticateWithToken`, `SwiftAuth.CheckTokenAbilities`)
+- ✅ **Table Prefix Support** out of the box
 
 **Example:**
 
@@ -182,11 +182,11 @@ SwiftAuth now speaks **English and Spanish** natively, with flexible architectur
 
 **Included:**
 
--   ✅ 10 Translation Files per language (auth, email, session, user, role)
--   ✅ Dynamic Language Switcher UI component (React TypeScript + JavaScript)
--   ✅ Session-Based Locale Persistence
--   ✅ Inertia.js Integration for seamless frontend translations
--   ✅ Fully Localized Email Templates
+- ✅ 10 Translation Files per language (auth, email, session, user, role)
+- ✅ Dynamic Language Switcher UI component (React TypeScript + JavaScript)
+- ✅ Session-Based Locale Persistence
+- ✅ Inertia.js Integration for seamless frontend translations
+- ✅ Fully Localized Email Templates
 
 **Example:**
 
@@ -203,9 +203,9 @@ import { __ } from './translations';
 
 **Admin Password Handling:**
 
--   Passwords **never** accepted as CLI arguments (prevents shell history exposure)
--   Secure interactive prompting with `secret()` helper
--   Auto-generation option for maximum security
+- Passwords **never** accepted as CLI arguments (prevents shell history exposure)
+- Secure interactive prompting with `secret()` helper
+- Auto-generation option for maximum security
 
 **Before:**
 
@@ -234,13 +234,11 @@ New guides to help you secure routes and localize your application:
 ### Critical Changes:
 
 1. **Sanctum Dependency Removed**
-
     - `laravel/sanctum` completely removed
     - Native `UserToken` system replaces Sanctum
     - Middleware: `auth:sanctum` → `SwiftAuth.AuthenticateWithToken`
 
 2. **Admin Command Security Update**
-
     - Password argument removed from CLI
     - Environment variables no longer supported
     - Interactive password entry required
@@ -273,20 +271,20 @@ php artisan migrate
 
 ## 🎨 Additional Improvements
 
--   ✅ Fixed 6 code quality issues (SHA-256, debug removal, docs, indexes, config, rate limits)
--   ✅ Consolidated database indexes into original migrations
--   ✅ Route file consolidation (email verification moved to main routes)
--   ✅ Updated architecture diagrams with UserTokenService
--   ✅ All frontend components internationalized
+- ✅ Fixed 6 code quality issues (SHA-256, debug removal, docs, indexes, config, rate limits)
+- ✅ Consolidated database indexes into original migrations
+- ✅ Route file consolidation (email verification moved to main routes)
+- ✅ Updated architecture diagrams with UserTokenService
+- ✅ All frontend components internationalized
 
 ## 📊 By The Numbers
 
--   **30+ commits** since v2.0.0
--   **2 languages** supported (English, Spanish)
--   **10 translation files** per language
--   **400+ lines** of route security documentation
--   **Zero** external authentication dependencies
--   **100%** table prefix compatibility
+- **30+ commits** since v2.0.0
+- **2 languages** supported (English, Spanish)
+- **10 translation files** per language
+- **400+ lines** of route security documentation
+- **Zero** external authentication dependencies
+- **100%** table prefix compatibility
 
 ## 🙏 Acknowledgments
 
@@ -294,9 +292,9 @@ Special thanks to **Gabriel Ruelas** (@gruelas) for architecture and native toke
 
 ## 🔮 What's Next?
 
--   Additional language support (French, German, Portuguese)
--   OAuth2/OIDC integration options
--   Enhanced MFA capabilities
+- Additional language support (French, German, Portuguese)
+- OAuth2/OIDC integration options
+- Enhanced MFA capabilities
 
 **Happy Authenticating! 🚀**
 
@@ -314,33 +312,33 @@ While standard features (Login, MFA, Registration) work as expected, the interna
 
 ## 🚀 Highlights
 
--   **Domain-Driven Structure:** Internal classes are now organized into clear domains (`Auth`, `Notifications`, `Users`).
--   **Strict Typing:** Zero-compromise adoption of PHP strict types and return declarations across the board.
--   **Documentation Overhaul:** New `/doc` directory with comprehensive diagrams, API references, and deployment guides.
--   **Leaner Codebase:** ~350 lines of redundant documentation removed in favor of expressive type signatures.
+- **Domain-Driven Structure:** Internal classes are now organized into clear domains (`Auth`, `Notifications`, `Users`).
+- **Strict Typing:** Zero-compromise adoption of PHP strict types and return declarations across the board.
+- **Documentation Overhaul:** New `/doc` directory with comprehensive diagrams, API references, and deployment guides.
+- **Leaner Codebase:** ~350 lines of redundant documentation removed in favor of expressive type signatures.
 
 ## ⚠️ Breaking Changes
 
 See [BREAKING_CHANGES.md](BREAKING_CHANGES.md) for the complete migration guide.
 
--   Namespace reorganization in `src/Classes/`.
--   Strict type enforcement in method signatures (requires updates to overriding child classes).
--   Constructor property promotion adopted in DTOs.
+- Namespace reorganization in `src/Classes/`.
+- Strict type enforcement in method signatures (requires updates to overriding child classes).
+- Constructor property promotion adopted in DTOs.
 
 ## 📝 Changelog
 
 ### Changed
 
--   Moved Notification services to `Classes/Notifications`.
--   Moved Auth DTOs and Services to `Classes/Auth`.
--   Standardized all file headers with File-Level DocBlocks.
--   Removed redundant `@param` and `@return` tags from PHPDoc.
+- Moved Notification services to `Classes/Notifications`.
+- Moved Auth DTOs and Services to `Classes/Auth`.
+- Standardized all file headers with File-Level DocBlocks.
+- Removed redundant `@param` and `@return` tags from PHPDoc.
 
 ### Added
 
--   New Architectural Diagrams (`doc/architecture-diagrams.md`).
--   Full API Documentation (`doc/api-documentation.md`).
--   Operational Monitoring Guide (`doc/monitoring.md`).
+- New Architectural Diagrams (`doc/architecture-diagrams.md`).
+- Full API Documentation (`doc/api-documentation.md`).
+- Operational Monitoring Guide (`doc/monitoring.md`).
 
 ---
 

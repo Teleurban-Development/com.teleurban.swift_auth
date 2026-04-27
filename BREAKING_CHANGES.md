@@ -135,13 +135,14 @@ php artisan migrate
 
 #### What Changed
 
-| Key                    | v3.x      | v4.0                                         |
-|------------------------|-----------|----------------------------------------------|
-| `swift_auth_tenant_id` | Not stored | Stored on login, cleared on logout           |
+| Key                    | v3.x       | v4.0                               |
+| ---------------------- | ---------- | ---------------------------------- |
+| `swift_auth_tenant_id` | Not stored | Stored on login, cleared on logout |
 
 #### Impact
 
 Active sessions from v3.x that are carried over to v4.0 will not have `swift_auth_tenant_id`. On the next request, `SwiftAuthTenantResolver` will fall back to:
+
 1. `X-Tenant-Id` header
 2. `tenant_id` query parameter
 3. User's `id_tenant` field
@@ -157,12 +158,12 @@ SwiftAuth now throws **typed exceptions** instead of generic ones.
 
 #### What Changed
 
-| Situation               | v3.x                  | v4.0                                          |
-|-------------------------|-----------------------|-----------------------------------------------|
-| Invalid input           | `\Exception` / 400    | `BadRequestException` (extends `\Exception`)  |
-| Resource not found      | `ModelNotFoundException` | `NotFoundException` (extends `\Exception`) |
-| Not authenticated       | Redirect / 401        | `UnauthorizedException`                       |
-| Not authorised          | Redirect / 403        | `ForbiddenException`                          |
+| Situation          | v3.x                     | v4.0                                         |
+| ------------------ | ------------------------ | -------------------------------------------- |
+| Invalid input      | `\Exception` / 400       | `BadRequestException` (extends `\Exception`) |
+| Resource not found | `ModelNotFoundException` | `NotFoundException` (extends `\Exception`)   |
+| Not authenticated  | Redirect / 401           | `UnauthorizedException`                      |
+| Not authorised     | Redirect / 403           | `ForbiddenException`                         |
 
 #### Migration Steps
 
@@ -216,10 +217,10 @@ SwiftAuth v3.0.0 **completely removes** `laravel/sanctum` and replaces it with a
 
 #### What Changed
 
--   `composer.json` no longer lists `laravel/sanctum` as a dependency
--   Sanctum migrations are no longer published during `swift-auth:install`
--   New `UserToken` model, service, and migration replace Sanctum's `personal_access_tokens`
--   New middleware: `SwiftAuth.AuthenticateWithToken` and `SwiftAuth.CheckTokenAbilities`
+- `composer.json` no longer lists `laravel/sanctum` as a dependency
+- Sanctum migrations are no longer published during `swift-auth:install`
+- New `UserToken` model, service, and migration replace Sanctum's `personal_access_tokens`
+- New middleware: `SwiftAuth.AuthenticateWithToken` and `SwiftAuth.CheckTokenAbilities`
 
 #### Why This Change
 
@@ -363,9 +364,9 @@ php artisan swift-auth:create-admin "Admin" admin@example.com
 
 #### Migration Actions
 
--   Remove `SWIFT_ADMIN_NAME` and `SWIFT_ADMIN_EMAIL` from `.env` files
--   Update deployment scripts to use interactive prompts or expect auto-generated passwords
--   Document generated passwords securely when using auto-generation
+- Remove `SWIFT_ADMIN_NAME` and `SWIFT_ADMIN_EMAIL` from `.env` files
+- Update deployment scripts to use interactive prompts or expect auto-generated passwords
+- Document generated passwords securely when using auto-generation
 
 ### 3. Installation Command Changes
 
@@ -375,14 +376,14 @@ The `swift-auth:install` command now publishes translation files automatically.
 
 **Before (v2.x):**
 
--   Did not publish translation files
--   Published Sanctum migrations separately
+- Did not publish translation files
+- Published Sanctum migrations separately
 
 **After (v3.0):**
 
--   Automatically publishes `swift-auth:lang` translations (10 files)
--   No longer publishes Sanctum migrations
--   Groups all SwiftAuth migrations before running `migrate`
+- Automatically publishes `swift-auth:lang` translations (10 files)
+- No longer publishes Sanctum migrations
+- Groups all SwiftAuth migrations before running `migrate`
 
 #### Migration Actions
 
@@ -396,12 +397,12 @@ Email verification routes have been consolidated into the main route file.
 
 **Before (v2.x):**
 
--   Separate `routes/swift-auth-email-verification.php` file
+- Separate `routes/swift-auth-email-verification.php` file
 
 **After (v3.0):**
 
--   All routes in `routes/swift-auth.php`
--   Email verification routes: `POST /email/send`, `GET /email/verify/{token}`
+- All routes in `routes/swift-auth.php`
+- Email verification routes: `POST /email/send`, `GET /email/verify/{token}`
 
 #### Migration Actions
 
@@ -422,10 +423,10 @@ None required if using default package routes. Check for conflicts if you've cus
 
 ### 6. Documentation Resources
 
--   **Route Security:** `doc/securing-routes.md` - Comprehensive guide with examples
--   **Localization:** `doc/localization.md` - Translation system guide
--   **API Docs:** `doc/api-documentation.md` - Updated with UserToken endpoints
--   **README:** Updated with security quick reference
+- **Route Security:** `doc/securing-routes.md` - Comprehensive guide with examples
+- **Localization:** `doc/localization.md` - Translation system guide
+- **API Docs:** `doc/api-documentation.md` - Updated with UserToken endpoints
+- **README:** Updated with security quick reference
 
 ---
 
@@ -453,7 +454,7 @@ Search and replace namespace imports in your application code if you have extend
 
 We have enforced native PHP return types and parameter types across the codebase to reduce reliance on PHPDoc.
 
--   **Before:**
+- **Before:**
 
     ```php
     /**
@@ -462,7 +463,7 @@ We have enforced native PHP return types and parameter types across the codebase
     public function getToken() { ... }
     ```
 
--   **After:**
+- **After:**
     ```php
     public function getToken(): string { ... }
     ```
@@ -475,14 +476,14 @@ If you have **extended** any SwiftAuth classes and overridden methods, you **mus
 
 Many DTOs and Services now use Constructor Property Promotion.
 
--   **Impact:** If you were using reflection or relying on specific internal property existence before the constructor ran, behavior might slightly differ, though public API surfaces remain largely compatible.
+- **Impact:** If you were using reflection or relying on specific internal property existence before the constructor ran, behavior might slightly differ, though public API surfaces remain largely compatible.
 
 ### 4. Event Constructors
 
 Auth events (`UserLoggedIn`, `SessionEvicted`, etc.) now enforce strict types in their constructors.
 
--   `userId` is strictly `int|string|null`.
--   `driverMetadata` is strictly `array`.
+- `userId` is strictly `int|string|null`.
+- `driverMetadata` is strictly `array`.
 
 #### Migration Action:
 
