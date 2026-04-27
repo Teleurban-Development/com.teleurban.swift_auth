@@ -17,11 +17,13 @@ namespace Equidna\SwiftAuth\Classes\Auth\Events;
  */
 final class UserLoggedIn
 {
+    /**
+     * @param array<string, mixed> $driverMetadata
+     */
     public function __construct(
         public readonly int|string|null $userId,
         public readonly string $sessionId,
         public readonly ?string $ipAddress,
         public readonly array $driverMetadata
-    ) {
-    }
+    ) {}
 }

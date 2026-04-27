@@ -20,12 +20,13 @@ class MfaService
     public function __construct(
         protected Session $session,
         protected Dispatcher $events,
-    ) {
-    }
+    ) {}
 
     /**
      * Records a pending MFA challenge without completing login.
      * Sets a 10-minute expiration to prevent session hijacking.
+     *
+     * @param array<string, mixed> $driverMetadata
      */
     public function startChallenge(
         User $user,
@@ -67,6 +68,26 @@ class MfaService
         $this->session->forget($this->pendingMfaUserKey);
         $this->session->forget($this->pendingMfaDriverKey);
         $this->session->forget($this->pendingMfaExpiresKey);
+    }
+
+    /**
+     * Returns the pending MFA user ID from the session, or null if not set.
+     *
+     * @return int|string|null
+     */
+    public function getPendingUserId(): int|string|null
+    {
+        $val = $this->session->get($this->pendingMfaUserKey);
+        return is_int($val) || is_string($val) ? $val : null;
+    }
+
+    /**
+     * Returns the pending MFA driver from the session, or null if not set.
+     */
+    public function getPendingDriver(): ?string
+    {
+        $val = $this->session->get($this->pendingMfaDriverKey);
+        return is_string($val) ? $val : null;
     }
 
     /**

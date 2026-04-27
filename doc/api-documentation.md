@@ -1,113 +1,514 @@
 # API Documentation
 
-SwiftAuth provides "Context-Aware" endpoints. They return **JSON** if `Accept: application/json` is requested, or **Inertia/Blade** views for browser requests.
+> SwiftAuth does not ship a separate `routes/api.php` file. All package routes use the `web` middleware group (session-aware). However, many endpoints return JSON responses when the request expects JSON (`Accept: application/json`) or when the result is inherently data-only (e.g., session lists, admin operations). This document covers the response contracts and request formats for all endpoints.
 
-**Base URL Prefix:** `/swift-auth` (configurable via `SWIFT_AUTH_ROUTE_PREFIX`)
+---
 
-## Authentication
+## Response Format
 
-### Login
+All responses use `Equidna\Toolkit\Helpers\ResponseHelper`. JSON responses follow this envelope:
 
-**POST** `/login`
-
-Authenticates a user via email and password.
-
-**Request Body:**
+**Success:**
 
 ```json
 {
-    "email": "user@example.com",
-    "password": "secret-password",
-    "remember": true
+    "status": "success",
+    "message": "Human-readable message.",
+    "data": {}
 }
 ```
 
-**Response (200 OK):**
+**Error (4xx/5xx):**
 
 ```json
 {
-    "success": true,
-    "message": "Login successful.",
+    "status": "error",
+    "message": "Human-readable error.",
+    "data": null
+}
+```
+
+For Blade (non-JSON) requests, `ResponseHelper` performs redirects with flash session messages instead of returning JSON.
+
+---
+
+## Authentication
+
+### POST `/{prefix}/login`
+
+Authenticates the user and starts a session.
+
+**Route name:** `swift-auth.login`
+
+**Request body (form or JSON):**
+
+| Field      | Type   | Required | Description                          |
+| ---------- | ------ | -------- | ------------------------------------ |
+| `email`    | string | Yes      | User's email address                 |
+| `password` | string | Yes      | User's plain-text password           |
+| `remember` | bool   | No       | Whether to issue a remember-me token |
+
+**Rate limits:**
+
+- Per email: `config('swift-auth.login_rate_limits.email.attempts')` (default: 3) per `config('swift-auth.login_rate_limits.email.decay_seconds')` (default: 300s)
+- Per IP: `config('swift-auth.login_rate_limits.ip.attempts')` (default: 10) per `config('swift-auth.login_rate_limits.ip.decay_seconds')` (default: 300s)
+
+**Success responses:**
+
+- `200` JSON `{ status: "success", data: { redirect: "/dashboard" } }` — login complete
+- `200` JSON `{ status: "pending_mfa", data: { driver: "otp|webauthn" } }` — MFA challenge required
+
+**Error responses:**
+
+- `401` — Invalid credentials
+- `403` — Account locked (includes `remaining_minutes` in data)
+- `422` — Validation failure
+- `429` — Rate limit exceeded
+
+**Events dispatched:**
+
+- `UserLoggedIn` on success
+- `MfaChallengeStarted` when MFA is required
+
+---
+
+### POST `/{prefix}/logout`
+
+Terminates the current session.
+
+**Route name:** `swift-auth.logout`
+
+**Request:** No body required (CSRF token via cookie/header).
+
+**Response:**
+
+- `200` / redirect to login form
+
+**Events dispatched:** `UserLoggedOut`
+
+---
+
+### POST `/{prefix}/locale/{locale}`
+
+Sets the application locale for the current session.
+
+**Route name:** `swift-auth.locale`
+
+**Path parameters:**
+
+| Parameter | Description                                                      |
+| --------- | ---------------------------------------------------------------- |
+| `locale`  | Locale code; must be in `config('swift-auth.supported_locales')` |
+
+**Response:**
+
+- `200` — Locale updated
+- `400` — Unsupported locale
+
+---
+
+## MFA Verification
+
+### POST `/{prefix}/mfa/otp/verify`
+
+Verifies the OTP code submitted after a pending MFA challenge.
+
+**Route name:** `swift-auth.mfa.otp.verify`
+
+**Request body:**
+
+| Field | Type   | Required | Description       |
+| ----- | ------ | -------- | ----------------- |
+| `otp` | string | Yes      | One-time password |
+
+**Response:**
+
+- `200` — Login finalized, session established
+- `400` — Missing or invalid OTP
+- `401` — Challenge expired or wrong code
+
+---
+
+### POST `/{prefix}/mfa/webauthn/verify`
+
+Verifies the WebAuthn assertion response for MFA.
+
+**Route name:** `swift-auth.mfa.webauthn.verify`
+
+**Request body:** Standard WebAuthn assertion JSON (from navigator.credentials.get).
+
+**Response:**
+
+- `200` — Login finalized
+- `401` — Assertion failed
+
+---
+
+## Password Reset
+
+### POST `/{prefix}/password`
+
+Sends a password reset link to the given email address.
+
+**Route name:** `swift-auth.password.send`
+
+**Request body:**
+
+| Field   | Type   | Required | Description      |
+| ------- | ------ | -------- | ---------------- |
+| `email` | string | Yes      | Registered email |
+
+**Notes:**
+
+- Rate-limited per email and per IP.
+- Even when the email is not found, a success response is returned to prevent user enumeration.
+
+**Response:**
+
+- `200` — Email dispatched (or silently ignored for unknown addresses)
+- `429` — Rate limit exceeded
+
+---
+
+### POST `/{prefix}/password/reset`
+
+Applies the new password using a valid reset token.
+
+**Route name:** `swift-auth.password.reset`
+
+**Request body:**
+
+| Field                   | Type   | Required | Description                     |
+| ----------------------- | ------ | -------- | ------------------------------- |
+| `token`                 | string | Yes      | Raw reset token from email link |
+| `email`                 | string | Yes      | User's email address            |
+| `password`              | string | Yes      | New password                    |
+| `password_confirmation` | string | Yes      | Must match `password`           |
+
+**Validation:** Password is validated against `config('swift-auth.password_requirements')`.
+
+**Response:**
+
+- `200` — Password updated successfully
+- `400` — Token expired, invalid, or email mismatch
+- `422` — Password does not meet requirements
+
+---
+
+## WebAuthn (Passkey)
+
+### POST `/{prefix}/webauthn/login/options`
+
+Returns attestation options for passkey authentication (unauthenticated).
+
+**Route name:** `swift-auth.webauthn.login.options`
+
+**Request body:** May include `email` to pre-populate user handle.
+
+**Response:**
+
+- `200` JSON — WebAuthn PublicKeyCredentialRequestOptions
+
+---
+
+### POST `/{prefix}/webauthn/login`
+
+Authenticates using a passkey credential.
+
+**Route name:** `swift-auth.webauthn.login`
+
+**Request body:** Standard WebAuthn assertion (from `navigator.credentials.get`).
+
+**Response:**
+
+- `200` — Login successful, session established
+- `401` — Assertion failed
+
+---
+
+### POST `/{prefix}/webauthn/register/options`
+
+Returns attestation options for registering a new passkey credential.
+
+> **Requires:** `SwiftAuth.RequireAuthentication`
+
+**Route name:** `swift-auth.webauthn.register.options`
+
+**Response:**
+
+- `200` JSON — WebAuthn PublicKeyCredentialCreationOptions
+- `401` — Not authenticated
+
+---
+
+### POST `/{prefix}/webauthn/register`
+
+Completes passkey credential registration.
+
+> **Requires:** `SwiftAuth.RequireAuthentication`
+
+**Route name:** `swift-auth.webauthn.register`
+
+**Request body:** Standard WebAuthn attestation (from `navigator.credentials.create`).
+
+**Response:**
+
+- `200` — Credential registered
+- `401` — Not authenticated
+- `400` — Attestation failed
+
+---
+
+## Email Verification
+
+### POST `/{prefix}/email/send`
+
+Sends an email verification link to the given address.
+
+**Route name:** `swift-auth.email.send`
+
+**Request body:**
+
+| Field   | Type   | Required | Description             |
+| ------- | ------ | -------- | ----------------------- |
+| `email` | string | Yes      | Email address to verify |
+
+**Rate limits:** Per IP and per email address.
+
+**Response:**
+
+- `200` — Verification email dispatched
+- `400` — Invalid email format
+- `429` — Rate limit exceeded
+
+---
+
+### GET `/{prefix}/email/verify/{token}`
+
+Verifies the email address using a token from the verification email.
+
+**Route name:** `swift-auth.email.verify`
+
+**Path parameters:**
+
+| Parameter | Description            |
+| --------- | ---------------------- |
+| `token`   | Raw verification token |
+
+**Response:**
+
+- `200` / redirect — Email verified
+- `400` — Token invalid or expired
+
+---
+
+## Sessions (Authenticated User)
+
+### GET `/{prefix}/sessions`
+
+Lists all active sessions for the authenticated user.
+
+> **Requires:** `SwiftAuth.RequireAuthentication`
+
+**Route name:** `swift-auth.sessions.index`
+
+**Response:**
+
+```json
+{
+    "status": "success",
+    "message": "Active sessions loaded.",
     "data": {
-        "user": { "id_user": 1, "email": "..." },
-        "redirect_url": "/dashboard"
+        "sessions": [
+            {
+                "id_session": 1,
+                "session_id": "uuid-string",
+                "ip_address": "127.0.0.1",
+                "user_agent": "Mozilla/5.0 ...",
+                "device_name": "Chrome on macOS",
+                "last_activity": "2025-01-15T10:30:00Z"
+            }
+        ]
     }
 }
 ```
 
-### Logout
+---
 
-**POST** `/logout`
+### DELETE `/{prefix}/sessions/{sessionId}`
 
-Terminates the current session.
+Revokes a specific session for the authenticated user.
 
-**Response (200 OK):**
+> **Requires:** `SwiftAuth.RequireAuthentication`
+
+**Route name:** `swift-auth.sessions.destroy`
+
+**Path parameters:**
+
+| Parameter   | Description                   |
+| ----------- | ----------------------------- |
+| `sessionId` | UUID of the session to revoke |
+
+**Response:**
+
+- `200` — Session revoked
+- `404` — Session not found or belongs to another user
+
+---
+
+## Admin: User Management
+
+> All admin endpoints require: `SwiftAuth.RequireAuthentication` + `SwiftAuth.CanPerformAction:sw-admin`
+
+### GET `/{prefix}/users`
+
+Lists users (paginated, supports search).
+
+**Query parameters:**
+
+| Parameter | Type   | Description          |
+| --------- | ------ | -------------------- |
+| `search`  | string | Optional search term |
+| `page`    | int    | Page number          |
+
+**Response:** Paginated user list. Format depends on frontend (JSON or Blade/Inertia).
+
+---
+
+### POST `/{prefix}/users`
+
+Creates a new user.
+
+**Request body:**
+
+| Field      | Type   | Required | Description         |
+| ---------- | ------ | -------- | ------------------- |
+| `name`     | string | Yes      | User display name   |
+| `email`    | string | Yes      | User email (unique) |
+| `password` | string | Yes      | Initial password    |
+| `roles`    | array  | No       | Array of role IDs   |
+
+---
+
+### PUT `/{prefix}/users/{id_user}`
+
+Updates an existing user.
+
+**Request body:** Partial — only send fields to update.
+
+---
+
+### DELETE `/{prefix}/users/{id_user}`
+
+Deletes a user and all associated sessions, tokens, and remember tokens.
+
+---
+
+## Admin: Role Management
+
+> All admin endpoints require: `SwiftAuth.RequireAuthentication` + `SwiftAuth.CanPerformAction:sw-admin`
+
+### GET `/{prefix}/roles`
+
+Lists roles (paginated, supports search).
+
+---
+
+### POST `/{prefix}/roles`
+
+Creates a new role.
+
+**Request body:**
+
+| Field         | Type   | Required | Description                                   |
+| ------------- | ------ | -------- | --------------------------------------------- |
+| `name`        | string | Yes      | Role name                                     |
+| `description` | string | No       | Role description                              |
+| `actions`     | array  | No       | Array of action strings (e.g. `["sw-admin"]`) |
+
+---
+
+### PUT `/{prefix}/roles/{id_role}`
+
+Updates an existing role.
+
+---
+
+### DELETE `/{prefix}/roles/{id_role}`
+
+Deletes a role and disassociates it from all users.
+
+---
+
+## Admin: Session Management
+
+> All admin endpoints require: `SwiftAuth.RequireAuthentication` + `SwiftAuth.CanPerformAction:sw-admin`
+
+### GET `/{prefix}/admin/sessions`
+
+Lists all sessions across all users.
+
+**Response:**
 
 ```json
 {
-    "success": true,
-    "message": "Logged out successfully."
+    "status": "success",
+    "message": "All sessions loaded.",
+    "data": { "sessions": [ ... ] }
 }
 ```
 
-## Registration (If Enabled)
+---
 
-### Register User
+### GET `/{prefix}/admin/sessions/{userId}`
 
-**POST** `/users`
+Lists all sessions for a specific user.
 
-Registers a new user account.
-
-**Request Body:**
+**Response:**
 
 ```json
 {
-    "name": "Jane Doe",
-    "email": "jane@example.com",
-    "password": "StrongPassword1!",
-    "password_confirmation": "StrongPassword1!"
+    "status": "success",
+    "message": "User sessions loaded.",
+    "data": { "user_id": 42, "sessions": [ ... ] }
 }
 ```
 
-**Response (201 Created):**
+---
+
+### DELETE `/{prefix}/admin/sessions/{userId}/{sessionId}`
+
+Revokes a specific session for a user.
+
+**Response:**
 
 ```json
 {
-    "success": true,
-    "message": "Account created successfully."
+    "status": "success",
+    "message": "Session revoked.",
+    "data": { "user_id": 42, "session_id": "uuid", "revoked_by": 1 }
 }
 ```
 
-## Password Management
+---
 
-### Send Reset Link
+### DELETE `/{prefix}/admin/sessions/{userId}`
 
-**POST** `/password`
+Revokes **all** sessions for a user.
 
-Triggers a password reset email.
+**Query parameters:**
 
-**Request Body:**
+| Parameter                 | Type | Default | Description                    |
+| ------------------------- | ---- | ------- | ------------------------------ |
+| `include_remember_tokens` | bool | `false` | Also revoke remember-me tokens |
 
-```json
-{
-    "email": "user@example.com"
-}
-```
-
-### Reset Password
-
-**POST** `/password/reset`
-
-Completes the password reset process.
-
-**Request Body:**
+**Response:**
 
 ```json
 {
-    "email": "user@example.com",
-    "token": "hashed-token-from-email",
-    "password": "NewStrongPassword1!",
-    "password_confirmation": "NewStrongPassword1!"
+    "status": "success",
+    "message": "All sessions revoked.",
+    "data": { "user_id": 42, "revoked_count": 3 }
 }
 ```
 
@@ -115,215 +516,23 @@ Completes the password reset process.
 
 ## API Token Authentication
 
-SwiftAuth provides a built-in API token system for stateless authentication. Tokens are SHA-256 hashed, support ability/scope-based authorization, expiration, and usage tracking.
+API tokens are issued and managed by the authenticated user. Use `SwiftAuth.AuthenticateWithToken` middleware on routes requiring stateless token auth.
 
-### Creating Tokens
-
-Tokens are created programmatically via the `UserTokenService`:
+**Issuing a token** (via the Facade, in your application code):
 
 ```php
-use Equidna\SwiftAuth\Classes\Auth\Services\UserTokenService;
-
-$tokenService = app(UserTokenService::class);
-
-$result = $tokenService->createToken(
-    user: $user,
-    name: 'Mobile App Token',
-    abilities: ['posts:read', 'posts:create'],
-    expiresAt: now()->addDays(30)
-);
-
-// Return plain token to user (only shown once)
-$plainToken = $result['token'];
-$tokenModel = $result['model'];
+$token = SwiftAuth::user()->createToken('mobile-app', ['posts:read']);
 ```
 
-### Authenticating with Tokens
+**Request header:**
 
-Include the token in the `Authorization` header:
-
-```bash
-Authorization: Bearer {your-plain-token}
+```
+Authorization: Bearer {token}
 ```
 
-### Token Abilities
-
--   **Wildcard:** Empty abilities array `[]` or `['*']` grants all permissions
--   **Scoped:** Specific abilities like `['posts:read', 'users:update']`
--   **Check:** Use `$token->can('ability')` to verify permissions
-
-### Token Management
-
-**Validate Token:**
+**Checking token abilities** (middleware):
 
 ```php
-$token = $tokenService->validateToken($plainToken);
-if ($token && !$token->isExpired()) {
-    $user = $token->user;
-}
+Route::middleware(['SwiftAuth.AuthenticateWithToken', 'SwiftAuth.CheckTokenAbilities:posts:write'])
+    ->post('/api/posts', [PostController::class, 'store']);
 ```
-
-**Check Abilities:**
-
-```php
-if ($tokenService->canPerformAction($plainToken, 'posts:delete')) {
-    // Allow action
-}
-```
-
-**Revoke Token:**
-
-```php
-$tokenService->revokeToken($tokenId);
-$tokenService->revokeAllUserTokens($userId);
-```
-
-**Cleanup Expired:**
-
-```bash
-php artisan swift-auth:purge-expired-tokens
-```
-
-This command runs automatically every hour and includes UserToken cleanup.
-
-### Security Notes
-
--   Tokens are hashed with SHA-256 before storage
--   Plain tokens are only shown once at creation
--   Expired tokens fail validation automatically
--   Usage is tracked via `last_used_at` timestamp
--   Foreign key cascade ensures tokens are deleted with users
-
----
-
-## Rate Limiting
-
-SwiftAuth implements comprehensive rate limiting to prevent abuse and protect against brute-force attacks. All rate limits return `429 Too Many Requests` when exceeded.
-
-### Login Rate Limits
-
-**Per Email:**
-
--   **Attempts:** 3 failed login attempts
--   **Window:** 5 minutes (300 seconds)
--   **Key:** `login:email:{sha256(email)}`
-
-**Per IP Address:**
-
--   **Attempts:** 10 failed login attempts
--   **Window:** 5 minutes (300 seconds)
--   **Key:** `login:ip:{ip_address}`
-
-**Response when exceeded:**
-
-```json
-{
-    "message": "Too many login attempts. Please try again in X seconds.",
-    "retry_after": 300
-}
-```
-
-### Password Reset Rate Limits
-
-**Per Email:**
-
--   **Attempts:** 3 reset requests
--   **Window:** 5 minutes (300 seconds)
--   **Key:** `password-reset:email:{sha256(email)}`
-
-**Per IP Address:**
-
--   **Attempts:** 50 requests (soft limit)
--   **Window:** 5 minutes (300 seconds)
--   **Key:** `password-reset:ip:{ip_address}`
-
-**Token Verification:**
-
--   **Attempts:** 5 verification attempts
--   **Window:** 1 hour (3600 seconds)
--   **Key:** `password-reset:verify:{sha256(email)}`
-
-### Email Verification Rate Limits
-
-**Per Email (Resend):**
-
--   **Attempts:** 3 resend requests
--   **Window:** 5 minutes (300 seconds)
--   **Key:** `email-verification:{sha256(email)}`
-
-**Per IP Address:**
-
--   **Attempts:** 5 verification requests
--   **Window:** 1 minute (60 seconds)
--   **Key:** `email-verification:ip:{ip_address}`
-
-### Best Practices
-
-1. **Handle 429 Responses:** Check the `retry_after` header or JSON field
-2. **Implement Exponential Backoff:** Increase wait time between retries
-3. **Show User Feedback:** Display remaining time before retry is allowed
-4. **Cache Tokens:** Don't request new tokens for every retry
-5. **Monitor Logs:** SwiftAuth logs all rate limit violations
-
-### Configuration
-
-Rate limits are configurable via `config/swift-auth.php`:
-
-```php
-'login_rate_limits' => [
-    'email' => [
-        'attempts' => 3,
-        'decay_seconds' => 300,
-    ],
-    'ip' => [
-        'attempts' => 10,
-        'decay_seconds' => 300,
-    ],
-],
-
-'password_reset_rate_limit' => [
-    'attempts' => 3,
-    'decay_seconds' => 300,
-],
-
-'email_verification' => [
-    'resend_rate_limit' => [
-        'attempts' => 3,
-        'decay_seconds' => 300,
-    ],
-    'ip_rate_limit' => [
-        'attempts' => 5,
-        'decay_seconds' => 60,
-    ],
-],
-```
-
----
-
-## WebAuthn / Passkeys
-
-### Get Registration Options
-
-**POST** `/webauthn/register/options`
-
-**Headers:** `Authorization: Bearer <token>` or Session Cookie.
-
-Returns public key options to initiate Passkey registration.
-
-### Complete Registration
-
-**POST** `/webauthn/register`
-
-Verifies the authenticator response and stores the credential.
-
-### Get Login Options
-
-**POST** `/webauthn/login/options`
-
-Returns challenge for Passkey login (can be user-agnostic or scoped to email).
-
-### Complete Login
-
-**POST** `/webauthn/login`
-
-Verifies the signed challenge and logs the user in.

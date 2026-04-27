@@ -62,7 +62,7 @@ final class EmailVerificationController
                 'swift-auth.email-verification.ip-rate-limit-exceeded',
                 [
                     'ip' => $request->ip(),
-                    'email' => $email,
+                    'email_hash' => hash('sha256', $email),
                 ],
             );
 
@@ -85,7 +85,7 @@ final class EmailVerificationController
             logger()->warning(
                 'swift-auth.email-verification.rate-limit-exceeded',
                 [
-                    'email' => $email,
+                    'email_hash' => hash('sha256', $email),
                     'ip' => $request->ip(),
                 ],
             );
@@ -103,7 +103,7 @@ final class EmailVerificationController
                 $rateLimitKey,
                 $decaySeconds,
             );
-            return response()->json(['message' => __('swift-auth::email.verification_user_not_found')], 404);
+            return response()->json(['message' => __('swift-auth::email.verification_sent'), 'data' => null], 200);
         }
 
         if ($user->email_verified_at) {
@@ -137,7 +137,7 @@ final class EmailVerificationController
             'swift-auth.email-verification.sent',
             [
                 'user_id' => $user->id_user,
-                'email' => $email,
+                'email_hash' => hash('sha256', $email),
                 'message_id' => $result->messageId,
                 'ip' => $request->ip(),
             ],

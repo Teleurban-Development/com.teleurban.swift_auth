@@ -47,6 +47,8 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
 
     /**
      * Cached available actions to avoid repeated parsing.
+     *
+     * @var array<int, string>|null
      */
     private ?array $cachedActions = null;
 
@@ -73,7 +75,6 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
     /**
      * @var array<int, string>
      */
-    protected $with = ['roles'];
     protected $fillable = [
         'id_tenant',
         'name',
@@ -131,6 +132,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
             ->isNotEmpty();
     }
 
+    /** @param string|array<int, string> $roles */
     public function hasRole(string|array $roles): bool
     {
         return $this->hasRoles($roles);

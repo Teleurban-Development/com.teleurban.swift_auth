@@ -13,6 +13,7 @@
 
 namespace Equidna\SwiftAuth\Http\Controllers;
 
+use Illuminate\Contracts\Hashing\Hasher;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -113,9 +114,6 @@ class AuthController extends Controller
             'user_id' => $userId,
             'ip' => $request->ip(),
         ]);
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
 
         return ResponseHelper::success(
             message: 'Logged out successfully.',
@@ -219,7 +217,7 @@ class AuthController extends Controller
         $driver = config('swift-auth.hash_driver');
         $driver = is_string($driver) ? $driver : null;
         if ($driver) {
-            /** @var \Illuminate\Contracts\Hashing\Hasher $hasher */
+            /** @var Hasher $hasher */
             $hasher = Hash::driver($driver);
             $valid = $hasher->check($credentials['password'], $passwordToCheck);
         } else {
@@ -253,8 +251,6 @@ class AuthController extends Controller
     ): never {
         // Record failed attempt and trigger lockout if threshold reached
         if ($user) {
-            $lockoutService->refreshAttemptsAfterInactivity($user);
-
             $ip = (string) ($request->ip() ?? '');
             $wasLocked = $lockoutService->recordFailedAttempt($user, $ip);
 
@@ -346,7 +342,10 @@ class AuthController extends Controller
             user: $user,
             ipAddress: $request->ip(),
             userAgent: $request->userAgent(),
-            deviceName: (string) $request->header('X-Device-Name', ''),
+            deviceName: (function () use ($request): string {
+                $h = $request->header('X-Device-Name', '');
+                return is_string($h) ? $h : '';
+            })(),
             remember: $remember,
         );
 
@@ -440,10 +439,12 @@ class AuthController extends Controller
 
     private function getEvictionMessage(?string $policy): ?string
     {
-        return match ($policy) {
+        $message = match ($policy) {
             'newest' => __('swift-auth::session.evicted_newest'),
             'oldest' => __('swift-auth::session.evicted_oldest'),
             default => null,
         };
+
+        return is_string($message) ? $message : null;
     }
 }

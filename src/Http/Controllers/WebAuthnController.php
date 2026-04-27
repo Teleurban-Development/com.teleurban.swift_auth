@@ -17,8 +17,11 @@ use Equidna\SwiftAuth\Facades\SwiftAuth;
 use Equidna\SwiftAuth\Models\User;
 use Equidna\Toolkit\Helpers\ResponseHelper;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Laravel\Sanctum\Contracts\HasApiTokens;
+use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable;
 use Laragear\WebAuthn\Facades\WebAuthn;
 use Laragear\WebAuthn\Http\Requests\AssertedRequest;
 use Laragear\WebAuthn\Http\Requests\AttestedRequest;
@@ -31,7 +34,7 @@ class WebAuthnController extends Controller
     /**
      * Generates attestation options for registering a new specific Passkey.
      */
-    public function registerOptions(Request $request): JsonResponse
+    public function registerOptions(Request $request): JsonResponse|RedirectResponse
     {
         // User must be logged in to register a new Passkey
         $user = $request->user();
@@ -52,7 +55,7 @@ class WebAuthnController extends Controller
     /**
      * Verifies the attestation response and stores the credential.
      */
-    public function register(AttestedRequest $request): JsonResponse
+    public function register(AttestedRequest $request): JsonResponse|RedirectResponse
     {
         try {
             $request->save();
@@ -61,7 +64,7 @@ class WebAuthnController extends Controller
         } catch (\Throwable $e) {
             logger()->error('swift-auth.webauthn.register-failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'exception_class' => get_class($e),
             ]);
             return ResponseHelper::error(
                 message: 'Credential registration failed. Please try again.'
@@ -81,7 +84,7 @@ class WebAuthnController extends Controller
         if ($email) {
             /** @var User|null $user */
             $user = User::where('email', $email)->first();
-            if ($user && method_exists($user, 'webAuthnAuthenticatable')) {
+            if ($user && $user instanceof WebAuthnAuthenticatable) {
                 return response()->json(WebAuthn::createAssertionOptions($user));
             }
         }
@@ -93,7 +96,7 @@ class WebAuthnController extends Controller
     /**
      * Verifies the assertion response and logs the user in.
      */
-    public function login(AssertedRequest $request): JsonResponse
+    public function login(AssertedRequest $request): JsonResponse|RedirectResponse
     {
         try {
             if ($request->login()) {
@@ -102,6 +105,7 @@ class WebAuthnController extends Controller
                 // Issue Sanctum Token for API/Mobile usage if device name is present
                 $token = null;
                 if ($request->filled('device_name') && method_exists($user, 'createToken')) {
+                    /** @var HasApiTokens $user */
                     $token = $user->createToken($request->input('device_name'))->plainTextToken;
                 }
 
@@ -119,7 +123,7 @@ class WebAuthnController extends Controller
         } catch (\Throwable $e) {
             logger()->error('swift-auth.webauthn.login-failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'exception_class' => get_class($e),
             ]);
             return ResponseHelper::error(
                 message: 'Authentication failed. Please try again.'

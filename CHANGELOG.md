@@ -2,6 +2,90 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.0.0] - "Archipelago" - 2026-04-27
+
+### Breaking Changes
+
+-   **ADDED (Required):** `equidna/bee-hive ^2.0` is now a required dependency.
+    -   Install via `composer require equidna/swift-auth:^4.0` (pulls bee-hive automatically).
+    -   The `BeeHiveServiceProvider` is registered automatically by SwiftAuth's service provider.
+-   **CHANGED:** `User` and `Role` models now use the `BelongsToTenant` trait.
+    -   All queries on `User` and `Role` are automatically scoped to the current tenant via `TenantScope`.
+    -   Existing code that queries across all tenants must now call `->withoutGlobalScope(TenantScope::class)` or disable multi-tenancy in config.
+-   **CHANGED:** New migration required — `2026_04_26_000001_add_tenant_columns_to_swift_auth_tables.php`.
+    -   Adds `id_tenant` (default `'global'`) to `{prefix}Users` and `{prefix}Roles` tables with index.
+    -   Must be run before application boots: `php artisan migrate`.
+-   **CHANGED:** `SwiftSessionAuth` session structure — login now stores `swift_auth_tenant_id` in session; logout clears it.
+    -   Active v3.x sessions will not have this key; they will resolve the tenant via fallback on next request.
+-   **CHANGED:** Controllers now return `Responsable` using `ResponseHelper`.
+    -   JSON response shapes have been normalised. Applications consuming raw JSON from SwiftAuth controllers should verify compatibility.
+-   **CHANGED:** SwiftAuth now throws typed exceptions from `Equidna\Toolkit\Exceptions\*` (`BadRequestException`, `ForbiddenException`, `NotFoundException`, `UnauthorizedException`).
+    -   Code catching bare `\Exception` from SwiftAuth operations should be updated to catch the specific types.
+
+### Added
+
+-   **Multi-Tenancy (BeeHive Integration):**
+    -   `SwiftAuthTenantResolver` class with 5-level resolution priority: `X-Tenant-Id` header → `tenant_id` query → session → `user->id_tenant` → config fallback (`'global'`).
+    -   New `multi_tenancy` config block in `config/swift-auth.php` with keys: `enabled`, `tenant_key`, `resolver`, `fallback_tenant_id`, `session_key`, `request_sources`.
+    -   `BelongsToTenant` trait on `User` and `Role` models — auto-assigns `id_tenant` on `creating` Eloquent event via `TenantContext::get()`.
+    -   Global `TenantScope` applied to `User` and `Role` queries.
+    -   New migration: `2026_04_26_000001_add_tenant_columns_to_swift_auth_tables.php`.
+    -   `swift-auth:install` now publishes BeeHive configuration.
+-   **Equidna Toolkit Layer (`src/Toolkit/`):**
+    -   `ResponseHelper` — unified JSON / redirect response builder for consistent API + Blade/Inertia responses.
+    -   `EquidnaFormRequest` — base FormRequest class for all SwiftAuth form requests.
+    -   Typed exceptions: `BadRequestException` (400), `ForbiddenException` (403), `NotFoundException` (404), `UnauthorizedException` (401).
+    -   `IlluminateHttpRequest.stub` — PHPStan stub for improved static analysis of Illuminate request in package context.
+-   **Tests:**
+    -   Feature test: `SwiftSessionAuthFlowTest` covering end-to-end login flows.
+    -   Unit tests: `MfaServiceTest`, `SessionManagerTest`, `UserTokenServiceTest` (103 total unit tests, 191 assertions passing).
+-   `equidna/bee-hive ^2.0` added to `require` in `composer.json`.
+-   `illuminate/http`, `illuminate/routing`, `inertiajs/inertia-laravel ^3.0` added to `require`.
+
+### Changed
+
+-   **`SwiftSessionAuth`:**
+    -   `login()` refactored into focused helper methods (`initializeLoginSession()`, `finalizeRememberMe()`, `dispatchLoginEvent()`).
+    -   Stores `swift_auth_tenant_id` in session on login (if multi-tenancy enabled).
+    -   Clears `swift_auth_tenant_id` from session on logout.
+-   **`SessionManager`:** Tightened cache/DB validation with improved error logging.
+-   **`RememberMeService`:** Updated with token queuing support.
+-   **Controllers:** `AuthController`, `MfaController`, `PasswordController` now use `ResponseHelper`; return `Responsable`.
+-   **`SelectiveRender` trait:** Returns `Responsable`; improved TypeScript/JavaScript frontend detection.
+-   **`SwiftAuthServiceProvider`:**
+    -   Registers `BeeHiveServiceProvider`.
+    -   Registers `UserRepositoryInterface → EloquentUserRepository` binding.
+    -   Exposes `Equidna\Toolkit\` autoloading namespace.
+    -   PHPStan enhanced with stub configuration.
+-   Relaxed/bumped composer constraints: `equidna/bird-flock ^1.2`, `illuminate/*`, `laravel/helpers`.
+
+### Fixed
+
+-   **Cross-tenant cache pollution** in `UserController::rolesCacheKey()` — was reading tenant from session only; now uses `TenantContext::get()` to prevent one tenant's cached roles leaking to another.
+-   Unit tests for `MfaServiceTest`, `SessionManagerTest`, `UserTokenServiceTest`, `ChecksRateLimitsTest` updated for accuracy.
+
+### Security
+
+-   **Tenant isolation enforced at Eloquent layer** via global `TenantScope` — not just at controller level.
+-   Tenant context stored in PHP session (server-side), not in client cookies.
+-   Cross-tenant cache poisoning vector eliminated in role caching.
+
+### Documentation
+
+-   Complete rewrite of all `doc/*.md` files:
+    -   `doc/architecture-diagrams.md` — C4 context/container, login sequence, session state, multi-tenancy flowchart.
+    -   `doc/api-documentation.md` — full endpoint reference including WebAuthn, UserToken, admin routes.
+    -   `doc/artisan-commands.md` — all 8 Artisan commands documented.
+    -   `doc/business-logic-and-core-processes.md` — login, password reset, MFA, session lifecycle, RBAC, multi-tenancy, remember-me, API tokens.
+    -   `doc/deployment-instructions.md` — step-by-step install and production guide.
+    -   `doc/monitoring.md` — events, log channels, rate limit signals, scheduler monitoring, APM.
+    -   `doc/open-questions-and-assumptions.md` — 10 open questions, 10 explicit assumptions.
+    -   `doc/routes-documentation.md` — all route groups, middleware, prefixes.
+    -   `doc/tests-documentation.md` — test infrastructure, test cases, patterns.
+    -   `README.md` — rewritten with v4.0 quick-start, multi-tenancy section, full feature table.
+
+---
+
 ## [3.0.0] - "Sovereign" - 2025-01-XX
 
 ### Breaking Changes

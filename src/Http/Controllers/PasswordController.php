@@ -13,6 +13,8 @@
 
 namespace Equidna\SwiftAuth\Http\Controllers;
 
+use Carbon\Carbon;
+use Illuminate\Contracts\Hashing\Hasher;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -101,7 +103,7 @@ class PasswordController extends Controller
         } catch (UnauthorizedException $e) {
             $availableIn = $this->rateLimitAvailableIn($ipKey);
             return response()->json([
-                'message' => $e->getMessage() . ' seconds.'
+                'message' => 'Too many requests from this network. Please try again in ' . $availableIn . ' seconds.'
             ], 429);
         }
 
@@ -228,7 +230,8 @@ class PasswordController extends Controller
         }
 
         /** @var array{email:string,token:string,password:string,password_confirmation:string} $data */
-        $reset = PasswordResetToken::where('email', strtolower($data['email']))->first();
+        /** @var PasswordResetToken|null $reset */
+        $reset = PasswordResetToken::query()->where('email', strtolower($data['email']))->first();
 
         // Use constant-time comparison to prevent timing attacks.
         // The stored token is a sha256 hash of the raw token, so hash the
@@ -242,7 +245,7 @@ class PasswordController extends Controller
 
         // Enforce TTL
         $ttl = (int) config('swift-auth.password_reset_ttl', 900);
-        /** @var \Illuminate\Support\Carbon|null $createdAt */
+        /** @var Carbon|null $createdAt */
         $createdAt = $reset->created_at;
         if (!$createdAt || $createdAt->diffInSeconds() > $ttl) {
             // remove expired token and reject
@@ -261,7 +264,7 @@ class PasswordController extends Controller
         $driver = config('swift-auth.hash_driver');
         $driver = is_string($driver) ? $driver : null;
         if ($driver) {
-            /** @var \Illuminate\Contracts\Hashing\Hasher $hasher */
+            /** @var Hasher $hasher */
             $hasher = Hash::driver($driver);
             $hashed = $hasher->make($data['password']);
         } else {

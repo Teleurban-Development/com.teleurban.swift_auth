@@ -24,6 +24,7 @@ final class LoginRequest extends EquidnaFormRequest
         return true;
     }
 
+    /** @return array<string, array<int, mixed>|string> */
     public function rules(): array
     {
         $min = (int) config('swift-auth.password_min_length', 8);

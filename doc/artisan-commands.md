@@ -1,81 +1,245 @@
 # Artisan Commands
 
-SwiftAuth includes several commands for installation, maintenance, and administration.
+> SwiftAuth registers 8 Artisan commands via `SwiftAuthServiceProvider`. All command signatures use the `swift-auth:` prefix. Two commands are automatically scheduled.
 
-## Installation & Setup
+---
 
-### `swift-auth:install`
+## swift-auth:install
 
-Publishes configuration, migrations, and assets.
+**Description:** Interactive installer that configures SwiftAuth, publishes assets, and runs migrations.
+
+**Usage:**
 
 ```bash
 php artisan swift-auth:install
 ```
 
-### `swift-auth:create-admin-user`
+**What it does:**
 
-Creates a user with the `root` admin role. Prompts securely for password.
+1. Prompts for key configuration options (`SWIFT_AUTH_FRONTEND`, `SWIFT_AUTH_SUCCESS_URL`, etc.).
+2. Publishes `config/swift-auth.php`.
+3. Optionally publishes migrations, views, language files, and frontend assets.
+4. Optionally runs `php artisan migrate`.
+
+**Notes:** Safe to run on a fresh install. Does not overwrite existing config unless `--force` is specified.
+
+---
+
+## swift-auth:create-admin
+
+**Description:** Creates a new administrator user interactively.
+
+**Usage:**
 
 ```bash
-php artisan swift-auth:create-admin "Admin Name" admin@example.com
+php artisan swift-auth:create-admin
 ```
 
-**Password Handling:**
+**What it does:**
 
--   Password is always prompted securely (never passed as argument)
--   Leave empty to auto-generate a random password
--   Generated passwords are displayed once and must be saved
+1. Prompts for `name` and `email`.
+2. Prompts for `password` (hidden input, confirmed).
+3. Creates the user record with the `sw-admin` action granted via a default admin role or directly.
 
-## Maintenance & Cleanup
+**Notes:** Intended for initial setup. Subsequent admin users can be created via the admin UI.
 
-### `swift-auth:purge-stale-sessions`
+---
 
-Removes database session records that have exceeded their lifetime.
-_Scheduled automatically if `session_cleanup.enabled` is true._
+## swift-auth:sessions
 
-```bash
-php artisan swift-auth:purge-stale-sessions
+**Description:** Lists active sessions, optionally filtered by user ID.
+
+**Signature:**
+
+```
+swift-auth:sessions {userId?}
 ```
 
-### `swift-auth:purge-expired-tokens`
+**Arguments:**
 
-Removes expired password reset tokens, email verification tokens, and user API tokens.
-_Scheduled automatically (hourly)._
+| Argument | Required | Description                                    |
+| -------- | -------- | ---------------------------------------------- |
+| `userId` | No       | If provided, lists sessions for that user only |
+
+**Usage:**
 
 ```bash
+# List all sessions
+php artisan swift-auth:sessions
+
+# List sessions for user ID 42
+php artisan swift-auth:sessions 42
+```
+
+**Output:** Table of sessions showing session ID, user ID, IP address, device name, and last activity.
+
+---
+
+## swift-auth:preview-email
+
+**Description:** Previews email templates in the console for development and debugging.
+
+**Signature:**
+
+```
+swift-auth:preview-email {template?} {--email=} {--url=}
+```
+
+**Arguments:**
+
+| Argument   | Required | Description                                                             |
+| ---------- | -------- | ----------------------------------------------------------------------- |
+| `template` | No       | Template name to preview (e.g., `password-reset`, `email-verification`) |
+
+**Options:**
+
+| Option    | Description                                  |
+| --------- | -------------------------------------------- |
+| `--email` | Email address to use as placeholder          |
+| `--url`   | URL to use as the action link in the preview |
+
+**Usage:**
+
+```bash
+php artisan swift-auth:preview-email password-reset --email=test@example.com --url=https://example.com/reset
+```
+
+---
+
+## swift-auth:purge-expired-tokens
+
+**Description:** Removes all expired password reset tokens and email verification tokens from the database.
+
+**Signature:**
+
+```
+swift-auth:purge-expired-tokens
+```
+
+**Schedule:** Runs automatically **every hour** via the Laravel scheduler.
+
+**Usage:**
+
+```bash
+# Manual run
 php artisan swift-auth:purge-expired-tokens
 ```
 
-## Administration (Manual)
+**What it does:**
 
-### `swift-auth:list-sessions`
+- Deletes rows from `{prefix}PasswordResetTokens` where `created_at` is older than `config('swift-auth.password_reset_ttl')`.
+- Deletes rows from the users table where `email_verification_sent_at` is expired.
 
-Lists active sessions for a specific user ID.
+**Notes:** Non-destructive to user data — only cleans up token records.
 
-```bash
-php artisan swift-auth:list-sessions --user=1
+---
+
+## swift-auth:purge-stale-sessions
+
+**Description:** Deletes session records from the database that have exceeded the absolute or idle session lifetime.
+
+**Signature:**
+
+```
+swift-auth:purge-stale-sessions
 ```
 
-### `swift-auth:revoke-user-sessions`
+**Schedule:** Runs automatically at the frequency configured in `config('swift-auth.session_cleanup.frequency')` (env: `SWIFT_AUTH_SESSION_CLEANUP_FREQUENCY`, default: `daily`).
 
-Invalidates all sessions for a user.
-
-```bash
-php artisan swift-auth:revoke-user-sessions --user=1
-```
-
-### `swift-auth:unlock-user`
-
-Manually unlocks a user account that was locked due to too many failed login attempts.
+**Usage:**
 
 ```bash
-php artisan swift-auth:unlock-user --email=user@example.com
+# Manual run
+php artisan swift-auth:purge-stale-sessions
 ```
 
-### `swift-auth:preview-email-templates`
+**What it does:**
 
-Renders email notifications to HTML files for design verification.
+- Deletes rows from `{prefix}Sessions` where `last_activity` indicates the session has expired based on idle and absolute lifetime settings.
+
+---
+
+## swift-auth:revoke-sessions
+
+**Description:** Revokes sessions for a specific user from the command line.
+
+**Signature:**
+
+```
+swift-auth:revoke-sessions {userId} {--session=*} {--all} {--remember}
+```
+
+**Arguments:**
+
+| Argument | Required | Description    |
+| -------- | -------- | -------------- |
+| `userId` | Yes      | ID of the user |
+
+**Options:**
+
+| Option        | Description                                       |
+| ------------- | ------------------------------------------------- |
+| `--session=*` | One or more session UUIDs to revoke (repeatable)  |
+| `--all`       | Revoke all sessions for the user                  |
+| `--remember`  | Also revoke remember-me tokens when using `--all` |
+
+**Usage:**
 
 ```bash
-php artisan swift-auth:preview-email-templates
+# Revoke all sessions for user 42
+php artisan swift-auth:revoke-sessions 42 --all
+
+# Revoke all sessions and remember-me tokens
+php artisan swift-auth:revoke-sessions 42 --all --remember
+
+# Revoke specific sessions
+php artisan swift-auth:revoke-sessions 42 --session=abc-123 --session=def-456
 ```
+
+**Notes:** Useful for emergency security responses and automated scripts.
+
+---
+
+## swift-auth:unlock-user
+
+**Description:** Unlocks a user account that has been locked due to repeated failed login attempts.
+
+**Signature:**
+
+```
+swift-auth:unlock-user {email}
+```
+
+**Arguments:**
+
+| Argument | Required | Description                      |
+| -------- | -------- | -------------------------------- |
+| `email`  | Yes      | Email address of the locked user |
+
+**Usage:**
+
+```bash
+php artisan swift-auth:unlock-user user@example.com
+```
+
+**What it does:**
+
+- Sets `locked_until` to `null` on the user record.
+- Resets `failed_login_attempts` to `0`.
+- Optionally logs/notifies the unlock event.
+
+**Error cases:**
+
+- If no user exists with that email: displays an error message.
+- If user is not currently locked: displays an informational message.
+
+---
+
+## Scheduler Summary
+
+| Command                           | Frequency                     |
+| --------------------------------- | ----------------------------- |
+| `swift-auth:purge-expired-tokens` | Every hour                    |
+| `swift-auth:purge-stale-sessions` | Configurable (default: daily) |
+
+The scheduler is registered automatically by `SwiftAuthServiceProvider`. Ensure the Laravel scheduler is set up in your cron or task scheduler — see [Deployment Instructions](deployment-instructions.md#scheduler-setup).

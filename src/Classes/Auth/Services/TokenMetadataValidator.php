@@ -3,7 +3,6 @@
 namespace Equidna\SwiftAuth\Classes\Auth\Services;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class TokenMetadataValidator
 {
@@ -13,90 +12,23 @@ class TokenMetadataValidator
         ?string $tokenDeviceName,
         Request $request
     ): bool {
-        $policy = config('swift-auth.remember_me.policy', 'strict');
-        $mismatches = [];
+        $mismatches = $this->buildMismatches($tokenIp, $tokenUserAgent, $tokenDeviceName, $request);
 
-        // IP Check
-        if (!$this->checkIp($policy, $tokenIp, $request->ip())) {
-            $mismatches[] = 'ip';
-        }
-
-        // User Agent Check
-        if ($tokenUserAgent !== $request->userAgent()) {
-            $mismatches[] = 'user_agent';
-        }
-
-        // Device Header Check
-        $requireDevice = config('swift-auth.remember_me.require_device_header', false);
-        $deviceHeader = config('swift-auth.remember_me.device_header', 'X-Device-Id');
-
-        if ($requireDevice || $tokenDeviceName !== null) {
-            $requestDevice = $request->header($deviceHeader);
-            if ($tokenDeviceName !== $requestDevice) {
-                // If strictly required OR token had it recorded but request doesn't match
-                $mismatches[] = 'device';
-            }
-        }
-
-        // If 'lenient', we might ignore some mismatches, but the test implies strict mostly.
-        // Actually the test `test_subnet_match_is_allowed_in_lenient_policy` implies IP check varies.
-        // But UA/Device seem consistent.
-
-        if (empty($mismatches)) {
-            return true;
-        }
-
-        // Logging handled by caller or here? The test expects logging.
-        // The original test expected `RememberMeService` to log.
-        // Better to return the result and mismatches, or log here.
-        // I'll log here to satisfy the test expectation which spies on Log.
-
-        // Construct context for logging
-        // But wait, I need user_id for logging context to match the test.
-        // Validate signature probably needs userId and tokenIp too.
-
-        // Let's change signature to accept more context if we want to log here.
-        return count($mismatches) === 0;
+        return empty($mismatches);
     }
 
+    /**
+     * @param array{ip: string, user_agent: string, device_name: ?string, user_id: int|string|null} $tokenData
+     */
     public function validateWithLogging(
         array $tokenData, // ['ip' => ..., 'user_agent' => ..., 'device_name' => ..., 'user_id' => ...]
         Request $request
     ): bool {
-        $policy = config('swift-auth.remember_me.policy', 'strict');
-        $mismatches = [];
-
-        $tokenIp = $tokenData['ip'];
+        $tokenIp        = $tokenData['ip'];
         $tokenUserAgent = $tokenData['user_agent'];
         $tokenDeviceName = $tokenData['device_name'] ?? null;
 
-        // IP Check
-        if (!$this->checkIp($policy, $tokenIp, $request->ip())) {
-            $mismatches[] = 'ip';
-        }
-
-        // User Agent Check
-        if ($tokenUserAgent !== $request->userAgent()) {
-            $mismatches[] = 'user_agent';
-        }
-
-        // Device Header Check
-        $requireDevice = config('swift-auth.remember_me.require_device_header', false);
-        $deviceHeader = config('swift-auth.remember_me.device_header', 'X-Device-Id');
-        $requestDevice = $request->header($deviceHeader);
-
-        // If required, it must be present and match.
-        // If not required but token has it, it must match.
-        // If not required and token doesn't have it, ignore?
-
-        // Test `test_strict_policy_requires_exact_matches`: token has device, request has device -> match.
-        // Test `test_mismatched_metadata...`: token has device, request has DIFFERENT device -> mismatch.
-
-        if ($requireDevice || $tokenDeviceName !== null) {
-            if ($tokenDeviceName !== $requestDevice) {
-                $mismatches[] = 'device';
-            }
-        }
+        $mismatches = $this->buildMismatches($tokenIp, $tokenUserAgent, $tokenDeviceName, $request);
 
         if (empty($mismatches)) {
             return true;
@@ -110,10 +42,45 @@ class TokenMetadataValidator
             ],
             'request' => [
                 'ip' => $request->ip(),
-            ]
+            ],
         ]);
 
         return false;
+    }
+
+    /**
+     * Compares token metadata against the current request and returns the fields that do not match.
+     *
+     * @return string[]
+     */
+    private function buildMismatches(
+        string $tokenIp,
+        string $tokenUserAgent,
+        ?string $tokenDeviceName,
+        Request $request
+    ): array {
+        $policy     = config('swift-auth.remember_me.policy', 'strict');
+        $mismatches = [];
+
+        if (!$this->checkIp($policy, $tokenIp, $request->ip())) {
+            $mismatches[] = 'ip';
+        }
+
+        if ($tokenUserAgent !== $request->userAgent()) {
+            $mismatches[] = 'user_agent';
+        }
+
+        $requireDevice = config('swift-auth.remember_me.require_device_header', false);
+        $deviceHeader  = config('swift-auth.remember_me.device_header', 'X-Device-Id');
+
+        if ($requireDevice || $tokenDeviceName !== null) {
+            $requestDevice = $request->header($deviceHeader);
+            if ($tokenDeviceName !== $requestDevice) {
+                $mismatches[] = 'device';
+            }
+        }
+
+        return $mismatches;
     }
 
     protected function checkIp(string $policy, string $tokenIp, ?string $requestIp): bool
@@ -124,24 +91,19 @@ class TokenMetadataValidator
 
         if ($policy === 'lenient' && config('swift-auth.remember_me.allow_same_subnet', true)) {
             $subnet = config('swift-auth.remember_me.subnet_mask', 24);
-            // Simple subnet matching logic
             return $this->cidrMatch($requestIp, $tokenIp, $subnet);
         }
 
         return false;
     }
 
-    protected function cidrMatch($ip, $target, $mask): bool
+    protected function cidrMatch(?string $ip, string $target, int $mask): bool
     {
-        // Simple implementation or use a library if available.
-        // user's IP vs token IP.
-
-        // This is a rough check.
         if (!$ip || !$target) {
             return false;
         }
 
-        $ipLong = ip2long($ip);
+        $ipLong     = ip2long($ip);
         $targetLong = ip2long($target);
 
         if ($ipLong === false || $targetLong === false) {

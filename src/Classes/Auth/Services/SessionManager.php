@@ -217,9 +217,12 @@ class SessionManager
      */
     public function sessionsForUser(int $userId): Collection
     {
-        return UserSession::query()
+        /** @var Collection<int, UserSession> $result */
+        $result = UserSession::query()
             ->where('id_user', $userId)
             ->orderByDesc('last_activity')
             ->get();
+
+        return $result;
     }
 }

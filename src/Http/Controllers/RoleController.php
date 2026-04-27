@@ -20,7 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Validator;
-use Inertia\Response;
+use Illuminate\Contracts\Support\Responsable;
 use Equidna\SwiftAuth\Facades\SwiftAuth;
 use Equidna\SwiftAuth\Models\Role;
 use Equidna\SwiftAuth\Support\Traits\SelectiveRender;
@@ -40,9 +40,9 @@ class RoleController extends Controller
      * Displays the paginated role list.
      *
      * @param  Request       $request  HTTP request with optional search term.
-     * @return View|Response           Blade or Inertia response containing roles.
+     * @return View|Responsable           Blade or Inertia response containing roles.
      */
-    public function index(Request $request): View|Response
+    public function index(Request $request): View|Responsable
     {
         $roles = Role::search($request->get('search'))
             ->paginate(10);
@@ -61,9 +61,9 @@ class RoleController extends Controller
      * Shows the role creation form.
      *
      * @param  Request       $request  HTTP request context.
-     * @return View|Response           Blade or Inertia response with action list.
+     * @return View|Responsable           Blade or Inertia response with action list.
      */
-    public function create(Request $request): View|Response
+    public function create(Request $request): View|Responsable
     {
         return $this->render(
             'swift-auth::role.create',
@@ -135,12 +135,12 @@ class RoleController extends Controller
      *
      * @param  Request       $request  HTTP request context.
      * @param  string        $id_role  Identifier for the role.
-     * @return View|Response           Blade or Inertia response with role data.
+     * @return View|Responsable           Blade or Inertia response with role data.
      */
     public function edit(
         Request $request,
         string $id_role,
-    ): View|Response {
+    ): View|Responsable {
         $role = Role::findOrFail($id_role);
 
         return $this->render(

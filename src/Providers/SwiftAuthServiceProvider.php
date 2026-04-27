@@ -18,6 +18,7 @@ use Equidna\BeeHive\Tenancy\Resolvers\StaticTenantResolver;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Routing\Router;
+use Illuminate\Session\Store;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\ServiceProvider;
@@ -84,7 +85,7 @@ final class SwiftAuthServiceProvider extends ServiceProvider
         $this->app->singleton(
             abstract: 'swift-auth',
             concrete: function ($app) {
-                /** @var \Illuminate\Session\Store $sessionStore */
+                /** @var Store $sessionStore */
                 $sessionStore = $app['session.store'];
 
                 /** @var UserRepositoryInterface $userRepository */
@@ -132,7 +133,8 @@ final class SwiftAuthServiceProvider extends ServiceProvider
 
         // Restore locale from session
         $locale = Session::get('locale', config('app.locale', 'en'));
-        if (in_array($locale, ['en', 'es'], strict: true)) {
+        $supportedLocales = (array) config('swift-auth.supported_locales', ['en', 'es']);
+        if (in_array($locale, $supportedLocales, strict: true)) {
             App::setLocale($locale);
         }
 

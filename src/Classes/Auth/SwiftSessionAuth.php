@@ -16,6 +16,7 @@ use Equidna\SwiftAuth\Classes\Auth\Services\SessionManager;
 use Equidna\SwiftAuth\Classes\Users\Contracts\UserRepositoryInterface;
 use Equidna\SwiftAuth\Models\User;
 use Equidna\SwiftAuth\Models\UserSession;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Session\Store as Session;
@@ -274,12 +275,17 @@ class SwiftSessionAuth
     /**
      * Determines if a user is currently authenticated via session.
      */
-    /**
-     * Determines if a user is currently authenticated via session.
-     */
     public function check(): bool
     {
-        $this->cachedUser = null;
+        if ($this->cachedUser !== null) {
+            $now = CarbonImmutable::now();
+            $this->session->put($this->lastActivityKey, $now->toIso8601String());
+            $sessionId = (string) $this->session->get($this->sessionUidKey);
+            if ($sessionId !== '') {
+                $this->sessionManager->touch($sessionId);
+            }
+            return true;
+        }
 
         $id = $this->id();
 
@@ -377,13 +383,16 @@ class SwiftSessionAuth
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, UserSession>
+     * @return Collection<int, UserSession>
      */
-    public function allSessions(): \Illuminate\Database\Eloquent\Collection
+    public function allSessions(): Collection
     {
-        return UserSession::query()
+        /** @var Collection<int, UserSession> $result */
+        $result = UserSession::query()
             ->orderByDesc('last_activity')
             ->get();
+
+        return $result;
     }
 
     public function revokeSession(int $userId, string $sessionId): void
@@ -501,9 +510,12 @@ class SwiftSessionAuth
         try {
             $request = request();
 
-            return method_exists($request, 'header')
-                ? (string) $request->header('X-Device-Name', '')
-                : null;
+            if (!method_exists($request, 'header')) {
+                return null;
+            }
+
+            $h = $request->header('X-Device-Name', '');
+            return is_string($h) ? ($h ?: null) : null;
         } catch (\Throwable $e) {
             logger()->debug('swift-auth.session.device-name-resolution-failed', [
                 'error' => $e->getMessage(),

@@ -1,5 +1,7 @@
 <?php
 
+use Equidna\SwiftAuth\Support\Tenancy\SwiftAuthTenantResolver;
+
 /**
  * Package configuration for SwiftAuth.
  */
@@ -186,6 +188,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Supported Locales
+    |--------------------------------------------------------------------------
+    |
+    | List of locale codes SwiftAuth will accept when restoring the session
+    | locale. Any locale not in this list will be ignored.
+    |
+    */
+    'supported_locales' => ['en', 'es'],
+
+    /*
+    |--------------------------------------------------------------------------
     | Email Verification
     |--------------------------------------------------------------------------
     */
@@ -227,7 +240,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'security_headers' => [
-        'csp' => env('SWIFT_AUTH_CSP', null), // e.g., "default-src 'self'; script-src 'self' 'unsafe-inline'"
+        'csp' => env('SWIFT_AUTH_CSP', null), // null = no CSP header emitted. Strongly recommended to configure, e.g. "default-src 'self'; script-src 'self'"
         'permissions_policy' => env('SWIFT_AUTH_PERMISSIONS_POLICY', null), // e.g., "geolocation=(), microphone=()"
         'hsts' => [
             'enabled' => true,
@@ -251,7 +264,7 @@ return [
         'tenant_key' => env('SWIFT_AUTH_TENANT_KEY', 'id_tenant'),
         'resolver' => env(
             'SWIFT_AUTH_TENANT_RESOLVER',
-            \Equidna\SwiftAuth\Support\Tenancy\SwiftAuthTenantResolver::class,
+            SwiftAuthTenantResolver::class,
         ),
         'fallback_tenant_id' => env('SWIFT_AUTH_FALLBACK_TENANT_ID', 'global'),
         'session_key' => env('SWIFT_AUTH_TENANT_SESSION_KEY', 'swift_auth_tenant_id'),
