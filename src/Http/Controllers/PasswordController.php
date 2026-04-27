@@ -88,18 +88,21 @@ class PasswordController extends Controller
         $ipKey = 'password-reset:ip:' . $request->ip();
 
         // If too many attempts for this email, return a 429 with retry information
-        try {
-            $this->checkRateLimit(
-                $limiterKey,
-                $attempts,
-                'Too many password reset attempts.'
-            );
-        } catch (UnauthorizedException $e) {
-            $availableIn = $this->rateLimitAvailableIn($limiterKey);
-            return response()->json([
-                'message' => $e->getMessage() . ' seconds.'
-            ], 429);
-        }
+            // SECURITY: Email-specific rate limiting is checked silently below to prevent
+            // email enumeration attacks. We do NOT return 429 for per-email limits, only IP-level.
+            // See: https://github.com/EquidnaMX/swift_auth/issues/XXX
+            // try {
+            //     $this->checkRateLimit(
+            //         $limiterKey,
+            //         $attempts,
+            //         'Too many password reset attempts.'
+            //     );
+            // } catch (UnauthorizedException $e) {
+            //     $availableIn = $this->rateLimitAvailableIn($limiterKey);
+            //     return response()->json([
+            //         'message' => $e->getMessage() . ' seconds.'
+            //     ], 429);
+            // }
 
         // IP-level protection: high threshold to reduce noise but stop large scans
         $ipThreshold = max(50, $attempts * 10);
@@ -121,6 +124,10 @@ class PasswordController extends Controller
         $this->hitRateLimit($ipKey, $decay);
 
         // Generate raw token and hash for storage
+        // Check email limit silently to prevent status code enumeration
+        $emailLimitExceeded = RateLimiter::tooManyAttempts($limiterKey, $attempts);
+
+        // Generate raw token and hash for storage
         $rawToken = Str::random(64);
         $hashedToken = hash('sha256', $rawToken);
 
@@ -128,25 +135,31 @@ class PasswordController extends Controller
         $userExists = User::where('email', $email)->exists();
 
         if ($userExists) {
-            PasswordResetToken::updateOrCreate(
-                ['email' => $email],
-                ['token' => $hashedToken, 'created_at' => now()]
-            );
+            if (!$emailLimitExceeded) {
+                PasswordResetToken::updateOrCreate(
+                    ['email' => $email],
+                    ['token' => $hashedToken, 'created_at' => now()]
+                );
 
-            try {
-                $messageId = $notificationService->sendPasswordReset($email, $rawToken);
+                try {
+                    $messageId = $notificationService->sendPasswordReset($email, $rawToken);
 
-                logger()->info('swift-auth.password-reset.email-sent', [
+                    logger()->info('swift-auth.password-reset.email-sent', [
+                        'email_hash' => hash('sha256', $email),
+                        'message_id' => $messageId,
+                        'ip' => $request->ip(),
+                    ]);
+                } catch (\RuntimeException $e) {
+                    logger()->error('swift-auth.password-reset.send-failed', [
+                        'email_hash' => hash('sha256', $email),
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            } else {
+                logger()->warning('swift-auth.password-reset.email-rate-limit', [
                     'email_hash' => hash('sha256', $email),
-                    'message_id' => $messageId,
                     'ip' => $request->ip(),
                 ]);
-            } catch (\Throwable $e) {
-                logger()->error('swift-auth.password-reset.send-failed', [
-                    'email_hash' => hash('sha256', $email),
-                    'error' => $e->getMessage()
-                ]);
-                // Don't reveal send failures to prevent enumeration
             }
         } else {
             logger()->info('swift-auth.password-reset.unknown-email', [

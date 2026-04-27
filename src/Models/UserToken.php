@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property \Illuminate\Support\Carbon|null $created_at     Creation timestamp.
  * @property \Illuminate\Support\Carbon|null $updated_at     Update timestamp.
  * @property-read User                       $user           Owning user.
+    * @method static static create(array<string, mixed> $attributes = [])
  */
 class UserToken extends Model
 {

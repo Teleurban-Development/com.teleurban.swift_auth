@@ -23,8 +23,6 @@ use Laravel\Sanctum\HasApiTokens;
 /**
  * Represents an authenticated SwiftAuth user record.
  *
- * @property int $id_user
- * @property string $name
  * @property string $email
  * @property string $password
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \Equidna\SwiftAuth\Models\Role> $roles
@@ -48,8 +46,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
     /**
      * Cached available actions to avoid repeated parsing.
      *
-     * @var array<int, string>|null
-     */
+    @@    use WebAuthnAuthentication;
     private ?array $cachedActions = null;
 
     /**

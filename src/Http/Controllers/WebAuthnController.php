@@ -59,8 +59,12 @@ class WebAuthnController extends Controller
 
             return ResponseHelper::success(message: 'Biometric credential registered successfully.');
         } catch (\Throwable $e) {
+            logger()->error('swift-auth.webauthn.register-failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return ResponseHelper::error(
-                message: 'Failed to register credential: ' . $e->getMessage()
+                message: 'Credential registration failed. Please try again.'
             );
         }
     }
@@ -113,8 +117,12 @@ class WebAuthnController extends Controller
 
             return ResponseHelper::unauthorized(message: 'Biometric authentication failed.');
         } catch (\Throwable $e) {
+            logger()->error('swift-auth.webauthn.login-failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return ResponseHelper::error(
-                message: 'Error verifying credential: ' . $e->getMessage()
+                message: 'Authentication failed. Please try again.'
             );
         }
     }

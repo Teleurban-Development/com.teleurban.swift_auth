@@ -14,6 +14,7 @@ namespace Equidna\SwiftAuth\Http\Controllers;
 
 use Equidna\SwiftAuth\Classes\Users\Contracts\UserRepositoryInterface;
 use Equidna\SwiftAuth\Facades\SwiftAuth;
+use Equidna\SwiftAuth\Classes\Auth\Services\MfaService;
 use Equidna\Toolkit\Helpers\ResponseHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -32,6 +33,7 @@ class MfaController extends Controller
     public function verifyOtp(
         Request $request,
         UserRepositoryInterface $userRepository,
+        MfaService $mfaService,
     ): JsonResponse|RedirectResponse {
         $otp = $request->input('otp');
 
@@ -78,6 +80,7 @@ class MfaController extends Controller
      * @return JsonResponse|RedirectResponse              ResponseHelper-wrapped response.
      */
     protected function finalizeMfa(
+            MfaService $mfaService,
         Request $request,
         UserRepositoryInterface $userRepository,
         string $method,
@@ -164,3 +167,16 @@ class MfaController extends Controller
         return (string) config('swift-auth.mfa.pending_method_session_key', 'swift_auth_pending_mfa_method');
     }
 }
+            $mfaService,
+    MfaService $mfaService,
+            $mfaService,
+
+        // Validate MFA challenge hasn't expired
+        if (!$mfaService->isPendingChallengeValid()) {
+            $mfaService->clearPendingChallenge();
+            logger()->warning('swift-auth.mfa.challenge-expired', [
+                'user_id' => $pendingUserId,
+                'method' => $method,
+            ]);
+            return ResponseHelper::unauthorized(message: 'MFA challenge expired. Please log in again.');
+        }

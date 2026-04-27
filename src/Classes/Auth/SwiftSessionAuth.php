@@ -447,7 +447,10 @@ class SwiftSessionAuth
             return method_exists($request, 'header')
                 ? (string) $request->header('X-Device-Name', '')
                 : null;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            logger()->debug('swift-auth.session.device-name-resolution-failed', [
+                'error' => $e->getMessage(),
+            ]);
             return null;
         }
     }
@@ -524,7 +527,11 @@ class SwiftSessionAuth
 
         try {
             return CarbonImmutable::parse($timestamp);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            logger()->debug('swift-auth.session.timestamp-parse-failed', [
+                'timestamp' => $timestamp,
+                'error' => $e->getMessage(),
+            ]);
             return null;
         }
     }
@@ -533,7 +540,11 @@ class SwiftSessionAuth
     {
         try {
             return config($key, $default);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            logger()->error('swift-auth.session.config-access-failed', [
+                'key' => $key,
+                'error' => $e->getMessage(),
+            ]);
             return $default;
         }
     }
