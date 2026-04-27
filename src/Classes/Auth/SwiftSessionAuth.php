@@ -34,6 +34,7 @@ class SwiftSessionAuth
     protected string $absoluteExpiryKey = 'swift_auth_absolute_expires_at';
     protected string $pendingMfaUserKey = 'swift_auth_pending_mfa_user_id';
     protected string $pendingMfaDriverKey = 'swift_auth_pending_mfa_driver';
+    protected string $tenantSessionKey = 'swift_auth_tenant_id';
     protected string $rememberCookieName = 'swift_auth_remember';
 
     private ?User $cachedUser = null;
@@ -46,6 +47,7 @@ class SwiftSessionAuth
         protected SessionManager $sessionManager,
         protected MfaService $mfaService,
     ) {
+        $this->tenantSessionKey = (string) config('swift-auth.multi_tenancy.session_key', 'swift_auth_tenant_id');
     }
 
     /**
@@ -97,6 +99,9 @@ class SwiftSessionAuth
         $this->session->put($this->sessionKey, $user->getKey());
         $this->session->put($this->sessionUidKey, $sessionId);
         $this->session->put($this->createdAtKey, $now->toIso8601String());
+        if (isset($user->id_tenant) && is_scalar($user->id_tenant)) {
+            $this->session->put($this->tenantSessionKey, (string) $user->id_tenant);
+        }
 
         if ($absoluteExpiry !== null) {
             $this->session->put($this->absoluteExpiryKey, $absoluteExpiry->toIso8601String());
@@ -186,6 +191,7 @@ class SwiftSessionAuth
         $this->session->forget($this->createdAtKey);
         $this->session->forget($this->lastActivityKey);
         $this->session->forget($this->absoluteExpiryKey);
+        $this->session->forget($this->tenantSessionKey);
         $this->mfaService->clearPendingChallenge();
 
         if ($sessionId !== '') {

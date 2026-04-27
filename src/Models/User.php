@@ -13,6 +13,7 @@
 
 namespace Equidna\SwiftAuth\Models;
 
+use Equidna\BeeHive\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -37,6 +38,7 @@ use Laravel\Sanctum\HasApiTokens;
  */
 class User extends Authenticatable implements WebAuthnAuthenticatable
 {
+    use BelongsToTenant;
     use WebAuthnAuthentication;
     use HasApiTokens;
 
@@ -45,8 +47,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
 
     /**
      * Cached available actions to avoid repeated parsing.
-     *
-    @@    use WebAuthnAuthentication;
+     */
     private ?array $cachedActions = null;
 
     /**
@@ -74,6 +75,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
      */
     protected $with = ['roles'];
     protected $fillable = [
+        'id_tenant',
         'name',
         'email',
         'password',

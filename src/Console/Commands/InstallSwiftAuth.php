@@ -47,6 +47,12 @@ class InstallSwiftAuth extends Command
             '--tag' => 'swift-auth:config'
         ]);
 
+        $this->info('Publishing BeeHive config...');
+        $this->call('vendor:publish', [
+            '--provider' => 'Equidna\\BeeHive\\BeeHiveServiceProvider',
+            '--tag' => 'bee-hive:config'
+        ]);
+
         $this->info('Publishing translations...');
         $this->call('vendor:publish', [
             '--provider' => 'Equidna\\SwiftAuth\\Providers\\SwiftAuthServiceProvider',

@@ -22,12 +22,14 @@ return new class extends Migration {
 
         Schema::create($prefix . 'Roles', function (Blueprint $table) {
             $table->id('id_role');
+            $table->string('id_tenant')->default('global');
             $table->string('name')->unique();
             $table->string('description')->nullable();
             $table->json('actions'); // Changed from string to JSON for better data structure
             $table->timestamps();
 
             // Performance indexes
+            $table->index('id_tenant');
             $table->index('name');
         });
         Schema::create($prefix . 'UsersRoles', function (Blueprint $table) use ($prefix) {

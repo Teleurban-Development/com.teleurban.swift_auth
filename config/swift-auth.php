@@ -240,4 +240,24 @@ return [
         'cross_origin_resource_policy' => env('SWIFT_AUTH_CORP', null), // e.g., "same-origin"
         'referrer_policy' => env('SWIFT_AUTH_REFERRER_POLICY', 'strict-origin-when-cross-origin'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Multi-Tenancy (BeeHive)
+    |--------------------------------------------------------------------------
+    */
+    'multi_tenancy' => [
+        'enabled' => env('SWIFT_AUTH_MULTI_TENANCY_ENABLED', false),
+        'tenant_key' => env('SWIFT_AUTH_TENANT_KEY', 'id_tenant'),
+        'resolver' => env(
+            'SWIFT_AUTH_TENANT_RESOLVER',
+            \Equidna\SwiftAuth\Support\Tenancy\SwiftAuthTenantResolver::class,
+        ),
+        'fallback_tenant_id' => env('SWIFT_AUTH_FALLBACK_TENANT_ID', 'global'),
+        'session_key' => env('SWIFT_AUTH_TENANT_SESSION_KEY', 'swift_auth_tenant_id'),
+        'request_sources' => [
+            'header' => env('SWIFT_AUTH_TENANT_HEADER', 'X-Tenant-Id'),
+            'query' => env('SWIFT_AUTH_TENANT_QUERY', 'tenant_id'),
+        ],
+    ],
 ];

@@ -13,6 +13,8 @@
 
 namespace Equidna\SwiftAuth\Providers;
 
+use Equidna\BeeHive\BeeHiveServiceProvider;
+use Equidna\BeeHive\Tenancy\Resolvers\StaticTenantResolver;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Routing\Router;
@@ -43,6 +45,7 @@ use Equidna\SwiftAuth\Http\Middleware\RequireAuthentication;
 use Equidna\SwiftAuth\Http\Middleware\SecurityHeaders;
 use Equidna\SwiftAuth\Http\Middleware\ShareInertiaData;
 use Equidna\SwiftAuth\Providers\RateLimitServiceProvider;
+use Equidna\SwiftAuth\Support\Tenancy\SwiftAuthTenantResolver;
 
 /**
  * Registers and bootstraps SwiftAuth components.
@@ -66,6 +69,12 @@ final class SwiftAuthServiceProvider extends ServiceProvider
             path: __DIR__ . '/../../config/swift-auth.php',
             key: 'swift-auth',
         );
+
+        $this->configureBeeHive();
+
+        if (class_exists(BeeHiveServiceProvider::class)) {
+            $this->app->register(BeeHiveServiceProvider::class);
+        }
 
         $this->app->singleton(
             abstract: UserRepositoryInterface::class,
@@ -409,5 +418,35 @@ final class SwiftAuthServiceProvider extends ServiceProvider
                 'driver' => $event->driverMetadata,
             ]);
         });
+    }
+
+    /**
+     * Aligns BeeHive configuration with SwiftAuth multitenancy settings.
+     */
+    private function configureBeeHive(): void
+    {
+        $enabled = (bool) config('swift-auth.multi_tenancy.enabled', false);
+        $tenantKey = (string) config('swift-auth.multi_tenancy.tenant_key', 'id_tenant');
+
+        config([
+            'bee-hive.tenant_key' => $tenantKey,
+        ]);
+
+        if ($enabled) {
+            config([
+                'bee-hive.resolver' => (string) config(
+                    'swift-auth.multi_tenancy.resolver',
+                    SwiftAuthTenantResolver::class,
+                ),
+                'bee-hive.static_tenant_id' => null,
+            ]);
+
+            return;
+        }
+
+        config([
+            'bee-hive.resolver' => StaticTenantResolver::class,
+            'bee-hive.static_tenant_id' => (string) config('swift-auth.multi_tenancy.fallback_tenant_id', 'global'),
+        ]);
     }
 }

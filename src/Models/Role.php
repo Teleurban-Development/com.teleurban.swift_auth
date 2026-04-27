@@ -13,6 +13,7 @@
 
 namespace Equidna\SwiftAuth\Models;
 
+use Equidna\BeeHive\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -32,6 +33,8 @@ use Equidna\SwiftAuth\Models\User;
  */
 class Role extends Model
 {
+    use BelongsToTenant;
+
     protected $table;
     protected $primaryKey = 'id_role';
 
@@ -59,6 +62,7 @@ class Role extends Model
     }
 
     protected $fillable = [
+        'id_tenant',
         'name',
         'description',
         'actions',
